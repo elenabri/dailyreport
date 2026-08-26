@@ -24,6 +24,12 @@
 }
 
 
+html,
+body {
+    width: 100%;
+}
+
+
 body {
 
     margin: 0;
@@ -37,17 +43,20 @@ body {
         Arial,
         sans-serif;
 
-    font-size: 13px;
+    font-size: 12px;
 }
 
 
 .container {
 
+    width: 100%;
+
     max-width: 1900px;
 
     margin: auto;
 
-    padding: 18px 22px;
+    padding:
+        12px 14px;
 }
 
 
@@ -63,13 +72,13 @@ body {
 
     align-items: center;
 
-    margin-bottom: 14px;
+    margin-bottom: 9px;
 }
 
 
 .title {
 
-    font-size: 21px;
+    font-size: 19px;
 
     font-weight: 700;
 }
@@ -77,11 +86,11 @@ body {
 
 .subtitle {
 
-    margin-top: 3px;
+    margin-top: 2px;
 
     color: #858b95;
 
-    font-size: 12px;
+    font-size: 11px;
 }
 
 
@@ -91,7 +100,7 @@ body {
 
     align-items: center;
 
-    gap: 12px;
+    gap: 10px;
 }
 
 
@@ -99,7 +108,7 @@ body {
 
     color: #858b95;
 
-    font-size: 12px;
+    font-size: 11px;
 }
 
 
@@ -107,17 +116,17 @@ button {
 
     border: none;
 
-    border-radius: 9px;
+    border-radius: 8px;
 
     padding:
-        9px
-        14px;
+        7px
+        11px;
 
     background: #111827;
 
     color: white;
 
-    font-size: 13px;
+    font-size: 12px;
 
     font-weight: 600;
 
@@ -140,24 +149,31 @@ button:disabled {
 
 
 /* =========================================================
-   TABLE
+   TABLE CONTAINER
    ========================================================= */
 
 .table-container {
 
+    width: 100%;
+
     background: white;
 
-    border: 1px solid #e5e7eb;
+    border:
+        1px solid #e5e7eb;
 
-    border-radius: 12px;
+    border-radius: 10px;
 
-    overflow: auto;
+    overflow: hidden;
 
     box-shadow:
         0 2px 7px
         rgba(0,0,0,.03);
 }
 
+
+/* =========================================================
+   TABLE
+   ========================================================= */
 
 table {
 
@@ -167,9 +183,9 @@ table {
 
     width: 100%;
 
-    min-width: 1280px;
+    min-width: 0;
 
-    table-layout: auto;
+    table-layout: fixed;
 }
 
 
@@ -189,13 +205,12 @@ th {
 
     color: #68707c;
 
-    font-size: 11px;
+    font-size: 9px;
 
     font-weight: 700;
 
     padding:
-        7px
-        7px;
+        4px 2px;
 
     border-bottom:
         1px solid #e5e7eb;
@@ -203,6 +218,8 @@ th {
     white-space: nowrap;
 
     text-align: right;
+
+    line-height: 1.05;
 }
 
 
@@ -219,6 +236,9 @@ th.product-header {
     min-width: 235px;
 
     max-width: 235px;
+
+    padding:
+        4px 6px;
 }
 
 
@@ -230,9 +250,12 @@ th.product-header {
 
     text-align: center;
 
-    font-size: 12px;
+    font-size: 10px;
 
     color: #242932;
+
+    padding:
+        4px 2px;
 }
 
 
@@ -242,11 +265,11 @@ th.product-header {
 
     color: #8b919a;
 
-    font-size: 10px;
+    font-size: 9px;
 
     font-weight: 400;
 
-    margin-top: 2px;
+    margin-top: 1px;
 }
 
 
@@ -257,8 +280,7 @@ th.product-header {
 td {
 
     padding:
-        7px
-        7px;
+        3px 2px;
 
     border-bottom:
         1px solid #edf0f3;
@@ -266,6 +288,10 @@ td {
     white-space: nowrap;
 
     text-align: right;
+
+    font-size: 10px;
+
+    line-height: 1.1;
 
     font-variant-numeric:
         tabular-nums;
@@ -297,6 +323,9 @@ tbody tr:hover td {
     overflow: hidden;
 
     vertical-align: middle;
+
+    padding:
+        3px 6px;
 }
 
 
@@ -304,21 +333,17 @@ tbody tr:hover td {
 
     font-weight: 600;
 
-    line-height: 1.25;
+    line-height: 1.12;
 
     overflow: hidden;
-
-    /*
-       Показываем до 3 строк
-    */
 
     display: -webkit-box;
 
     -webkit-box-orient: vertical;
 
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
 
-    line-clamp: 3;
+    line-clamp: 2;
 
     white-space: normal;
 
@@ -330,9 +355,11 @@ tbody tr:hover td {
 
     color: #858b95;
 
-    font-size: 11px;
+    font-size: 9px;
 
-    margin-top: 3px;
+    margin-top: 1px;
+
+    line-height: 1.05;
 
     overflow: hidden;
 
@@ -340,6 +367,7 @@ tbody tr:hover td {
 
     white-space: nowrap;
 }
+
 
 /* =========================================================
    РАЗДЕЛИТЕЛЬ ДНЕЙ
@@ -356,14 +384,6 @@ tbody tr:hover td {
    ПОДСВЕТКА
    ========================================================= */
 
-/*
-   ЗЕЛЁНЫЙ:
-
-   Цена уменьшилась
-   СПП увеличился
-   Продажи увеличились
-*/
-
 .up {
 
     background: #dff5e6 !important;
@@ -374,14 +394,6 @@ tbody tr:hover td {
 }
 
 
-/*
-   КРАСНЫЙ:
-
-   Цена увеличилась
-   СПП уменьшился
-   Продажи уменьшились
-*/
-
 .down {
 
     background: #ffe1e1 !important;
@@ -391,10 +403,6 @@ tbody tr:hover td {
     font-weight: 700;
 }
 
-
-/*
-   Без изменения
-*/
 
 .same {
 
@@ -432,7 +440,7 @@ tbody tr:hover td {
 
 .error {
 
-    padding: 35px;
+    padding: 25px;
 
     text-align: center;
 
@@ -442,7 +450,7 @@ tbody tr:hover td {
 
 .loading {
 
-    padding: 35px;
+    padding: 25px;
 
     text-align: center;
 
@@ -451,8 +459,74 @@ tbody tr:hover td {
 
 
 /* =========================================================
+   ЧИСЛОВЫЕ КОЛОНКИ
+   ========================================================= */
+
+table th:not(.product-header),
+table td:not(.product-cell) {
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+
+/* =========================================================
    MOBILE
    ========================================================= */
+
+@media (
+    max-width: 1100px
+) {
+
+    .container {
+
+        padding:
+            8px;
+    }
+
+
+    th {
+
+        font-size: 8px;
+
+        padding:
+            3px 1px;
+    }
+
+
+    td {
+
+        font-size: 9px;
+
+        padding:
+            3px 1px;
+    }
+
+
+    .product-cell,
+    th.product-header {
+
+        width: 200px;
+
+        min-width: 200px;
+
+        max-width: 200px;
+    }
+
+
+    .product-name {
+
+        font-size: 11px;
+    }
+
+
+    .product-article {
+
+        font-size: 8px;
+    }
+}
+
 
 @media (
     max-width: 800px
@@ -461,7 +535,7 @@ tbody tr:hover td {
     .container {
 
         padding:
-            10px;
+            6px;
     }
 
 
@@ -471,7 +545,7 @@ tbody tr:hover td {
 
         flex-direction: column;
 
-        gap: 10px;
+        gap: 7px;
     }
 
 
@@ -481,6 +555,24 @@ tbody tr:hover td {
 
         justify-content:
             space-between;
+    }
+
+
+    /*
+       На маленьком экране
+       горизонтальный скролл разрешаем,
+       иначе таблица станет нечитаемой.
+    */
+
+    .table-container {
+
+        overflow-x: auto;
+    }
+
+
+    table {
+
+        min-width: 1150px;
     }
 
 
@@ -735,6 +827,65 @@ function formatDate(date) {
 
 
 // ============================================================
+// ЗАКАЗЫ ЗА 3 ДНЯ
+// ============================================================
+
+function getSales3(product) {
+
+    const days =
+        product.days || [];
+
+
+    return days.reduce(
+        (
+            sum,
+            day
+        ) => {
+
+            return sum +
+                Number(
+                    day?.sales || 0
+                );
+
+        },
+        0
+    );
+}
+
+
+// ============================================================
+// ФИЛЬТР ТОВАРА
+//
+// Показываем:
+//
+// остаток > 0
+//
+// ИЛИ
+//
+// были заказы хотя бы в один
+// из последних 3 дней.
+// ============================================================
+
+function shouldShowProduct(product) {
+
+    const stock =
+        Number(
+            product.stockToday || 0
+        );
+
+
+    const sales3 =
+        getSales3(product);
+
+
+    return (
+        stock > 0 ||
+        sales3 > 0
+    );
+}
+
+
+// ============================================================
 // КЛАСС ИЗМЕНЕНИЯ
 //
 // price:
@@ -795,13 +946,6 @@ function getChangeClass(
     }
 
 
-    // ========================================================
-    // ЦЕНА
-    //
-    // Цена уменьшилась → ЗЕЛЁНЫЙ
-    // Цена увеличилась → КРАСНЫЙ
-    // ========================================================
-
     if (
         type === 'price'
     ) {
@@ -818,13 +962,6 @@ function getChangeClass(
     }
 
 
-    // ========================================================
-    // СПП
-    //
-    // СПП увеличился → ЗЕЛЁНЫЙ
-    // СПП уменьшился → КРАСНЫЙ
-    // ========================================================
-
     if (
         type === 'spp'
     ) {
@@ -840,13 +977,6 @@ function getChangeClass(
         return 'down';
     }
 
-
-    // ========================================================
-    // ПРОДАЖИ
-    //
-    // Продажи увеличились → ЗЕЛЁНЫЙ
-    // Продажи уменьшились → КРАСНЫЙ
-    // ========================================================
 
     if (
         type === 'sales'
@@ -874,8 +1004,66 @@ function getChangeClass(
 
 function render(data) {
 
-    const products =
+
+    // ========================================================
+    // ПОЛУЧАЕМ ТОВАРЫ
+    // ========================================================
+
+    let products =
         data.products || [];
+
+
+    // ========================================================
+    // ФИЛЬТР
+    //
+    // Остаток > 0
+    //
+    // ИЛИ
+    //
+    // заказы за 3 дня > 0
+    // ========================================================
+
+    products =
+        products.filter(
+            product =>
+                shouldShowProduct(
+                    product
+                )
+        );
+
+
+    // ========================================================
+    // СОРТИРОВКА
+    //
+    // ПО ВОЗРАСТАНИЮ
+    //
+    // Сумма заказов:
+    //
+    // позавчера +
+    // вчера +
+    // сегодня
+    // ========================================================
+
+    products.sort(
+        (
+            a,
+            b
+        ) => {
+
+            const salesA =
+                getSales3(a);
+
+
+            const salesB =
+                getSales3(b);
+
+
+            return (
+                salesA -
+                salesB
+            );
+        }
+    );
 
 
     // ========================================================
@@ -887,9 +1075,13 @@ function render(data) {
         .textContent =
 
         `Заказы: ${
-            formatDate(data.period.from)
+            formatDate(
+                data.period.from
+            )
         } — ${
-            formatDate(data.period.to)
+            formatDate(
+                data.period.to
+            )
         } · товаров: ${
             products.length
         }`;
@@ -904,6 +1096,11 @@ function render(data) {
     ) {
 
         document
+            .getElementById('tableHead')
+            .innerHTML = '';
+
+
+        document
             .getElementById('tableBody')
             .innerHTML = `
 
@@ -914,8 +1111,8 @@ function render(data) {
                         class="error"
                     >
 
-                        За последние 30 дней
-                        заказов нет.
+                        Нет товаров с остатком
+                        или заказами за последние 3 дня.
 
                     </td>
 
@@ -930,17 +1127,9 @@ function render(data) {
     // ========================================================
     // ДНИ
     //
-    // Сервер отдаёт строго:
-    //
     // days[0] = позавчера
     // days[1] = вчера
     // days[2] = сегодня
-    //
-    // Поэтому здесь:
-    //
-    // today     = days[2]
-    // yesterday = days[1]
-    // dayBefore = days[0]
     // ========================================================
 
     const firstProduct =
@@ -961,17 +1150,6 @@ function render(data) {
 
     // ========================================================
     // HEADER
-    //
-    // ПОРЯДОК:
-    //
-    // Товар
-    // Сегодня
-    // Вчера
-    // Позавчера
-    // Заказы 30 дней
-    // Остаток сегодня
-    // Хватит на
-    // Позиция
     // ========================================================
 
     document
@@ -1000,7 +1178,9 @@ function render(data) {
                 Сегодня
 
                 <span class="day-date">
-                    ${formatDate(today.date)}
+                    ${formatDate(
+                        today.date
+                    )}
                 </span>
 
             </th>
@@ -1016,7 +1196,9 @@ function render(data) {
                 Вчера
 
                 <span class="day-date">
-                    ${formatDate(yesterday.date)}
+                    ${formatDate(
+                        yesterday.date
+                    )}
                 </span>
 
             </th>
@@ -1032,7 +1214,9 @@ function render(data) {
                 Позавчера
 
                 <span class="day-date">
-                    ${formatDate(dayBefore.date)}
+                    ${formatDate(
+                        dayBefore.date
+                    )}
                 </span>
 
             </th>
@@ -1094,10 +1278,12 @@ function render(data) {
                  СЕГОДНЯ
                  ================================================= -->
 
-            <th class="day-separator">
+            <th
+                class="day-separator"
+            >
 
                 Цена<br>
-                покупателя
+                покуп.
 
             </th>
 
@@ -1112,7 +1298,7 @@ function render(data) {
             <th>
 
                 Цена<br>
-                продавца
+                продав.
 
             </th>
 
@@ -1128,10 +1314,12 @@ function render(data) {
                  ВЧЕРА
                  ================================================= -->
 
-            <th class="day-separator">
+            <th
+                class="day-separator"
+            >
 
                 Цена<br>
-                покупателя
+                покуп.
 
             </th>
 
@@ -1146,7 +1334,7 @@ function render(data) {
             <th>
 
                 Цена<br>
-                продавца
+                продав.
 
             </th>
 
@@ -1162,10 +1350,12 @@ function render(data) {
                  ПОЗАВЧЕРА
                  ================================================= -->
 
-            <th class="day-separator">
+            <th
+                class="day-separator"
+            >
 
                 Цена<br>
-                покупателя
+                покуп.
 
             </th>
 
@@ -1180,7 +1370,7 @@ function render(data) {
             <th>
 
                 Цена<br>
-                продавца
+                продав.
 
             </th>
 
@@ -1207,11 +1397,9 @@ function render(data) {
         const product of products
     ) {
 
+
         // ====================================================
-        // ДНИ ЭТОГО ТОВАРА
-        //
-        // НЕ ИСПОЛЬЗУЕМ d0/d1/d2,
-        // чтобы больше не путать даты.
+        // ДНИ
         // ====================================================
 
         const today =
@@ -1228,9 +1416,6 @@ function render(data) {
 
         // ====================================================
         // ЦЕНА ПОКУПАТЕЛЯ
-        //
-        // Сегодня сравниваем с вчера.
-        // Вчера сравниваем с позавчера.
         // ====================================================
 
         const buyerTodayClass =
@@ -1292,11 +1477,9 @@ function render(data) {
         // ====================================================
         // ПРОДАЖИ
         //
-        // Вчера:
+        // Вчера сравниваем с позавчера.
         //
-        // 25.08 сравниваем с 24.08
-        //
-        // Сегодня НЕ подсвечиваем.
+        // Сегодня не подсвечиваем.
         // ====================================================
 
         const salesYesterdayClass =
@@ -1361,7 +1544,9 @@ function render(data) {
             <!-- Цена покупателя -->
 
             <td
-                class="day-separator ${buyerTodayClass}"
+                class="day-separator ${
+                    buyerTodayClass
+                }"
             >
 
                 ${formatMoney(
@@ -1374,7 +1559,9 @@ function render(data) {
             <!-- СПП -->
 
             <td
-                class="${sppTodayClass}"
+                class="${
+                    sppTodayClass
+                }"
             >
 
                 ${formatPercent(
@@ -1387,7 +1574,9 @@ function render(data) {
             <!-- Цена продавца -->
 
             <td
-                class="${sellerTodayClass}"
+                class="${
+                    sellerTodayClass
+                }"
             >
 
                 ${formatMoney(
@@ -1397,7 +1586,7 @@ function render(data) {
             </td>
 
 
-            <!-- Продажи БЕЗ подсветки -->
+            <!-- Продажи -->
 
             <td>
 
@@ -1416,7 +1605,9 @@ function render(data) {
             <!-- Цена покупателя -->
 
             <td
-                class="day-separator ${buyerYesterdayClass}"
+                class="day-separator ${
+                    buyerYesterdayClass
+                }"
             >
 
                 ${formatMoney(
@@ -1429,7 +1620,9 @@ function render(data) {
             <!-- СПП -->
 
             <td
-                class="${sppYesterdayClass}"
+                class="${
+                    sppYesterdayClass
+                }"
             >
 
                 ${formatPercent(
@@ -1442,7 +1635,9 @@ function render(data) {
             <!-- Цена продавца -->
 
             <td
-                class="${sellerYesterdayClass}"
+                class="${
+                    sellerYesterdayClass
+                }"
             >
 
                 ${formatMoney(
@@ -1455,7 +1650,9 @@ function render(data) {
             <!-- Продажи -->
 
             <td
-                class="${salesYesterdayClass}"
+                class="${
+                    salesYesterdayClass
+                }"
             >
 
                 ${formatNumber(
