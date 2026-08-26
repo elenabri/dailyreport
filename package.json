@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "type": "commonjs",
-  "scripts": {
-    "dev": "vercel dev"
-  },
   "dependencies": {
     "adm-zip": "^0.5.16",
     "dotenv": "^17.2.2",
