@@ -574,105 +574,115 @@ async function getCurrentBuyerPrice(nmId) {
         '&spp=30' +
         `&nm=${nmId}`;
 
+    console.log('');
     console.log(
-        '========================================'
+        `Получаем текущую цену покупателя через curl: ${nmId}`
     );
-
-    console.log(
-        `BUYER PRICE TEST: ${nmId}`
-    );
-
-    console.log(
-        `URL: ${url}`
-    );
-
-    const response =
-        await fetch(url, {
-            method: 'GET',
-
-            headers: {
-                'Accept': 'application/json',
-                'User-Agent':
-                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150 Safari/537.36',
-                'Referer':
-                    'https://www.wildberries.ru/',
-                'Origin':
-                    'https://www.wildberries.ru/'
-            },
-
-            signal:
-                AbortSignal.timeout(30000)
-        });
-
-    const text =
-        await response.text();
-
-    console.log(
-        `card.wb.ru STATUS: ${response.status}`
-    );
-
-    console.log(
-        `card.wb.ru RESPONSE: ${text.slice(0, 1000)}`
-    );
-
-    if (!response.ok) {
-
-        throw new Error(
-            `card.wb.ru HTTP ${response.status}: ${text.slice(0, 500)}`
-        );
-    }
-
-    let data;
 
     try {
 
-        data =
-            JSON.parse(text);
+        const {
+            stdout,
+            stderr
+        } = await execFileAsync(
 
-    } catch {
+            'curl',
 
-        throw new Error(
-            `card.wb.ru вернул не JSON: ${text.slice(0, 500)}`
+            [
+                '--silent',
+                '--show-error',
+                '--location',
+                '--compressed',
+
+                '--header',
+                'Accept: application/json',
+
+                '--header',
+                'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150 Safari/537.36',
+
+                '--header',
+                'Referer: https://www.wildberries.ru/',
+
+                '--header',
+                'Origin: https://www.wildberries.ru/',
+
+                url
+            ],
+
+            {
+                maxBuffer: 10 * 1024 * 1024
+            }
         );
+
+        if (!stdout) {
+
+            throw new Error(
+                stderr ||
+                'curl не вернул данные'
+            );
+        }
+
+        console.log(
+            `Ответ card.wb.ru для ${nmId}:`,
+            stdout.slice(0, 500)
+        );
+
+        let data;
+
+        try {
+
+            data =
+                JSON.parse(stdout);
+
+        } catch {
+
+            throw new Error(
+                `card.wb.ru вернул не JSON: ${stdout.slice(0, 500)}`
+            );
+        }
+
+        const product =
+            data?.products?.find(
+                p =>
+                    Number(p.id) ===
+                    Number(nmId)
+            );
+
+        if (!product) {
+
+            throw new Error(
+                `Товар ${nmId} не найден в card.wb.ru`
+            );
+        }
+
+        const priceKopecks =
+            product?.sizes?.[0]?.price?.product;
+
+        if (priceKopecks == null) {
+
+            throw new Error(
+                `price.product отсутствует у ${nmId}`
+            );
+        }
+
+        const price =
+            Number(priceKopecks) / 100;
+
+        console.log(
+            `buyerPrice ${nmId}: ${price} ₽`
+        );
+
+        return price;
+
+    } catch (error) {
+
+        console.error(
+            `buyerPrice ${nmId} ERROR:`,
+            error.message
+        );
+
+        throw error;
     }
-
-    const product =
-        data?.products?.find(
-            p =>
-                Number(p.id) ===
-                Number(nmId)
-        );
-
-    if (!product) {
-
-        throw new Error(
-            `Товар ${nmId} не найден в card.wb.ru`
-        );
-    }
-
-    console.log(
-        'PRODUCT:',
-        JSON.stringify(product).slice(0, 2000)
-    );
-
-    const priceKopecks =
-        product?.sizes?.[0]?.price?.product;
-
-    if (priceKopecks == null) {
-
-        throw new Error(
-            `price.product отсутствует у ${nmId}`
-        );
-    }
-
-    const price =
-        Number(priceKopecks) / 100;
-
-    console.log(
-        `BUYER PRICE RESULT: ${price} ₽`
-    );
-
-    return price;
 }
 
 // ============================================================
