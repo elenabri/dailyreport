@@ -1,0 +1,1754 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>WB Dashboard</title>
+
+
+<style>
+
+/* =========================================================
+   BASE
+   ========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+
+body {
+
+    margin: 0;
+
+    background: #f5f6f8;
+
+    color: #20242b;
+
+    font-family:
+        Inter,
+        Arial,
+        sans-serif;
+
+    font-size: 13px;
+}
+
+
+.container {
+
+    max-width: 1900px;
+
+    margin: auto;
+
+    padding: 18px 22px;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.header {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    margin-bottom: 14px;
+}
+
+
+.title {
+
+    font-size: 21px;
+
+    font-weight: 700;
+}
+
+
+.subtitle {
+
+    margin-top: 3px;
+
+    color: #858b95;
+
+    font-size: 12px;
+}
+
+
+.header-right {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+}
+
+
+#status {
+
+    color: #858b95;
+
+    font-size: 12px;
+}
+
+
+button {
+
+    border: none;
+
+    border-radius: 9px;
+
+    padding:
+        9px
+        14px;
+
+    background: #111827;
+
+    color: white;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+
+button:hover {
+
+    background: #242b38;
+}
+
+
+button:disabled {
+
+    opacity: .5;
+
+    cursor: wait;
+}
+
+
+/* =========================================================
+   TABLE
+   ========================================================= */
+
+.table-container {
+
+    background: white;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 12px;
+
+    overflow: auto;
+
+    box-shadow:
+        0 2px 7px
+        rgba(0,0,0,.03);
+}
+
+
+table {
+
+    border-collapse: separate;
+
+    border-spacing: 0;
+
+    width: 100%;
+
+    min-width: 1280px;
+
+    table-layout: auto;
+}
+
+
+/* =========================================================
+   HEADER CELLS
+   ========================================================= */
+
+th {
+
+    position: sticky;
+
+    top: 0;
+
+    z-index: 5;
+
+    background: #fafbfc;
+
+    color: #68707c;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    padding:
+        7px
+        7px;
+
+    border-bottom:
+        1px solid #e5e7eb;
+
+    white-space: nowrap;
+
+    text-align: right;
+}
+
+
+/* =========================================================
+   ТОВАР
+   ========================================================= */
+
+th.product-header {
+
+    text-align: center;
+
+    width: 235px;
+
+    min-width: 235px;
+
+    max-width: 235px;
+}
+
+
+/* =========================================================
+   ЗАГОЛОВКИ ДНЕЙ
+   ========================================================= */
+
+.day-title {
+
+    text-align: center;
+
+    font-size: 12px;
+
+    color: #242932;
+}
+
+
+.day-date {
+
+    display: block;
+
+    color: #8b919a;
+
+    font-size: 10px;
+
+    font-weight: 400;
+
+    margin-top: 2px;
+}
+
+
+/* =========================================================
+   TABLE CELLS
+   ========================================================= */
+
+td {
+
+    padding:
+        7px
+        7px;
+
+    border-bottom:
+        1px solid #edf0f3;
+
+    white-space: nowrap;
+
+    text-align: right;
+
+    font-variant-numeric:
+        tabular-nums;
+}
+
+
+tbody tr:hover td {
+
+    background: #fafcff;
+}
+
+
+/* =========================================================
+   PRODUCT
+   ========================================================= */
+
+.product-cell {
+
+    width: 235px;
+
+    min-width: 235px;
+
+    max-width: 235px;
+
+    text-align: left;
+
+    white-space: normal;
+
+    overflow: hidden;
+
+    vertical-align: middle;
+}
+
+
+.product-name {
+
+    font-weight: 600;
+
+    line-height: 1.25;
+
+    overflow: hidden;
+
+    /*
+       Показываем до 3 строк
+    */
+
+    display: -webkit-box;
+
+    -webkit-box-orient: vertical;
+
+    -webkit-line-clamp: 3;
+
+    line-clamp: 3;
+
+    white-space: normal;
+
+    overflow-wrap: anywhere;
+}
+
+
+.product-article {
+
+    color: #858b95;
+
+    font-size: 11px;
+
+    margin-top: 3px;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+/* =========================================================
+   РАЗДЕЛИТЕЛЬ ДНЕЙ
+   ========================================================= */
+
+.day-separator {
+
+    border-left:
+        2px solid #e9ebef !important;
+}
+
+
+/* =========================================================
+   ПОДСВЕТКА
+   ========================================================= */
+
+/*
+   ЗЕЛЁНЫЙ:
+
+   Цена уменьшилась
+   СПП увеличился
+   Продажи увеличились
+*/
+
+.up {
+
+    background: #dff5e6 !important;
+
+    color: #14783b;
+
+    font-weight: 700;
+}
+
+
+/*
+   КРАСНЫЙ:
+
+   Цена увеличилась
+   СПП уменьшился
+   Продажи уменьшились
+*/
+
+.down {
+
+    background: #ffe1e1 !important;
+
+    color: #b42318;
+
+    font-weight: 700;
+}
+
+
+/*
+   Без изменения
+*/
+
+.same {
+
+    color: #505762;
+}
+
+
+/* =========================================================
+   OTHER
+   ========================================================= */
+
+.stock {
+
+    font-weight: 700;
+}
+
+
+.days-left {
+
+    font-weight: 700;
+}
+
+
+.position {
+
+    font-weight: 700;
+}
+
+
+.empty {
+
+    color: #a3a8b0;
+}
+
+
+.error {
+
+    padding: 35px;
+
+    text-align: center;
+
+    color: #b42318;
+}
+
+
+.loading {
+
+    padding: 35px;
+
+    text-align: center;
+
+    color: #858b95;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (
+    max-width: 800px
+) {
+
+    .container {
+
+        padding:
+            10px;
+    }
+
+
+    .header {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 10px;
+    }
+
+
+    .header-right {
+
+        width: 100%;
+
+        justify-content:
+            space-between;
+    }
+
+
+    .product-cell,
+    th.product-header {
+
+        width: 190px;
+
+        min-width: 190px;
+
+        max-width: 190px;
+    }
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+    <!-- =====================================================
+         HEADER
+         ===================================================== -->
+
+    <div class="header">
+
+        <div>
+
+            <div class="title">
+                Wildberries · товары
+            </div>
+
+            <div
+                class="subtitle"
+                id="period"
+            >
+                Загрузка...
+            </div>
+
+        </div>
+
+
+        <div class="header-right">
+
+            <div id="status">
+            </div>
+
+            <button
+                id="refreshButton"
+            >
+                ↻ Обновить данные
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         TABLE
+         ===================================================== -->
+
+    <div class="table-container">
+
+        <table>
+
+            <thead id="tableHead">
+            </thead>
+
+            <tbody id="tableBody">
+
+                <tr>
+
+                    <td
+                        colspan="17"
+                        class="loading"
+                    >
+                        Загрузка данных WB...
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+</div>
+
+
+
+<script>
+
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+function escapeHtml(value) {
+
+    return String(value ?? '')
+        .replace(
+            /[&<>"']/g,
+            char => ({
+
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+
+            }[char])
+        );
+}
+
+
+// ============================================================
+// ЧИСЛА
+// ============================================================
+
+function formatNumber(
+    value,
+    digits = 0
+) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        !Number.isFinite(
+            Number(value)
+        )
+    ) {
+
+        return '<span class="empty">—</span>';
+    }
+
+
+    return Number(value)
+        .toLocaleString(
+            'ru-RU',
+            {
+                maximumFractionDigits:
+                    digits
+            }
+        );
+}
+
+
+// ============================================================
+// ДЕНЬГИ
+// ============================================================
+
+function formatMoney(value) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        !Number.isFinite(
+            Number(value)
+        )
+    ) {
+
+        return '<span class="empty">—</span>';
+    }
+
+
+    return (
+        Number(value)
+            .toLocaleString(
+                'ru-RU',
+                {
+                    maximumFractionDigits: 0
+                }
+            )
+        + ' ₽'
+    );
+}
+
+
+// ============================================================
+// ПРОЦЕНТ
+// ============================================================
+
+function formatPercent(value) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        !Number.isFinite(
+            Number(value)
+        )
+    ) {
+
+        return '<span class="empty">—</span>';
+    }
+
+
+    return (
+        Number(value)
+            .toLocaleString(
+                'ru-RU',
+                {
+                    maximumFractionDigits: 1
+                }
+            )
+        + '%'
+    );
+}
+
+
+// ============================================================
+// ДАТА
+// ============================================================
+
+function formatDate(date) {
+
+    if (!date) {
+
+        return '';
+    }
+
+
+    const parts =
+        String(date).split('-');
+
+
+    if (parts.length !== 3) {
+
+        return String(date);
+    }
+
+
+    const year =
+        parts[0];
+
+    const month =
+        parts[1];
+
+    const day =
+        parts[2];
+
+
+    return `${day}.${month}`;
+}
+
+
+// ============================================================
+// КЛАСС ИЗМЕНЕНИЯ
+//
+// price:
+//
+// уменьшение = зелёный
+// увеличение = красный
+//
+// spp:
+//
+// увеличение = зелёный
+// уменьшение = красный
+//
+// sales:
+//
+// увеличение = зелёный
+// уменьшение = красный
+// ============================================================
+
+function getChangeClass(
+    current,
+    previous,
+    type
+) {
+
+    if (
+        current === null ||
+        previous === null ||
+        current === undefined ||
+        previous === undefined
+    ) {
+
+        return '';
+    }
+
+
+    const currentNumber =
+        Number(current);
+
+
+    const previousNumber =
+        Number(previous);
+
+
+    if (
+        !Number.isFinite(currentNumber) ||
+        !Number.isFinite(previousNumber)
+    ) {
+
+        return '';
+    }
+
+
+    if (
+        currentNumber === previousNumber
+    ) {
+
+        return 'same';
+    }
+
+
+    // ========================================================
+    // ЦЕНА
+    //
+    // Цена уменьшилась → ЗЕЛЁНЫЙ
+    // Цена увеличилась → КРАСНЫЙ
+    // ========================================================
+
+    if (
+        type === 'price'
+    ) {
+
+        if (
+            currentNumber < previousNumber
+        ) {
+
+            return 'up';
+        }
+
+
+        return 'down';
+    }
+
+
+    // ========================================================
+    // СПП
+    //
+    // СПП увеличился → ЗЕЛЁНЫЙ
+    // СПП уменьшился → КРАСНЫЙ
+    // ========================================================
+
+    if (
+        type === 'spp'
+    ) {
+
+        if (
+            currentNumber > previousNumber
+        ) {
+
+            return 'up';
+        }
+
+
+        return 'down';
+    }
+
+
+    // ========================================================
+    // ПРОДАЖИ
+    //
+    // Продажи увеличились → ЗЕЛЁНЫЙ
+    // Продажи уменьшились → КРАСНЫЙ
+    // ========================================================
+
+    if (
+        type === 'sales'
+    ) {
+
+        if (
+            currentNumber > previousNumber
+        ) {
+
+            return 'up';
+        }
+
+
+        return 'down';
+    }
+
+
+    return '';
+}
+
+
+// ============================================================
+// RENDER
+// ============================================================
+
+function render(data) {
+
+    const products =
+        data.products || [];
+
+
+    // ========================================================
+    // ПЕРИОД
+    // ========================================================
+
+    document
+        .getElementById('period')
+        .textContent =
+
+        `Заказы: ${
+            formatDate(data.period.from)
+        } — ${
+            formatDate(data.period.to)
+        } · товаров: ${
+            products.length
+        }`;
+
+
+    // ========================================================
+    // НЕТ ТОВАРОВ
+    // ========================================================
+
+    if (
+        !products.length
+    ) {
+
+        document
+            .getElementById('tableBody')
+            .innerHTML = `
+
+                <tr>
+
+                    <td
+                        colspan="17"
+                        class="error"
+                    >
+
+                        За последние 30 дней
+                        заказов нет.
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        return;
+    }
+
+
+    // ========================================================
+    // ДНИ
+    //
+    // Сервер отдаёт строго:
+    //
+    // days[0] = позавчера
+    // days[1] = вчера
+    // days[2] = сегодня
+    //
+    // Поэтому здесь:
+    //
+    // today     = days[2]
+    // yesterday = days[1]
+    // dayBefore = days[0]
+    // ========================================================
+
+    const firstProduct =
+        products[0];
+
+
+    const today =
+        firstProduct.days[2];
+
+
+    const yesterday =
+        firstProduct.days[1];
+
+
+    const dayBefore =
+        firstProduct.days[0];
+
+
+    // ========================================================
+    // HEADER
+    //
+    // ПОРЯДОК:
+    //
+    // Товар
+    // Сегодня
+    // Вчера
+    // Позавчера
+    // Заказы 30 дней
+    // Остаток сегодня
+    // Хватит на
+    // Позиция
+    // ========================================================
+
+    document
+        .getElementById('tableHead')
+        .innerHTML = `
+
+        <tr>
+
+            <!-- ТОВАР -->
+
+            <th
+                rowspan="2"
+                class="product-header"
+            >
+                Товар
+            </th>
+
+
+            <!-- СЕГОДНЯ -->
+
+            <th
+                colspan="4"
+                class="day-title day-separator"
+            >
+
+                Сегодня
+
+                <span class="day-date">
+                    ${formatDate(today.date)}
+                </span>
+
+            </th>
+
+
+            <!-- ВЧЕРА -->
+
+            <th
+                colspan="4"
+                class="day-title day-separator"
+            >
+
+                Вчера
+
+                <span class="day-date">
+                    ${formatDate(yesterday.date)}
+                </span>
+
+            </th>
+
+
+            <!-- ПОЗАВЧЕРА -->
+
+            <th
+                colspan="4"
+                class="day-title day-separator"
+            >
+
+                Позавчера
+
+                <span class="day-date">
+                    ${formatDate(dayBefore.date)}
+                </span>
+
+            </th>
+
+
+            <!-- ЗАКАЗЫ 30 ДНЕЙ -->
+
+            <th
+                rowspan="2"
+                class="day-separator"
+            >
+
+                Заказы<br>
+                30 дней
+
+            </th>
+
+
+            <!-- ОСТАТОК -->
+
+            <th
+                rowspan="2"
+            >
+
+                Остаток<br>
+                сегодня
+
+            </th>
+
+
+            <!-- ХВАТИТ НА -->
+
+            <th
+                rowspan="2"
+            >
+
+                Хватит<br>
+                на
+
+            </th>
+
+
+            <!-- ПОЗИЦИЯ -->
+
+            <th
+                rowspan="2"
+            >
+
+                Позиция
+
+            </th>
+
+        </tr>
+
+
+        <tr>
+
+            <!-- =================================================
+                 СЕГОДНЯ
+                 ================================================= -->
+
+            <th class="day-separator">
+
+                Цена<br>
+                покупателя
+
+            </th>
+
+
+            <th>
+
+                СПП
+
+            </th>
+
+
+            <th>
+
+                Цена<br>
+                продавца
+
+            </th>
+
+
+            <th>
+
+                Продажи
+
+            </th>
+
+
+            <!-- =================================================
+                 ВЧЕРА
+                 ================================================= -->
+
+            <th class="day-separator">
+
+                Цена<br>
+                покупателя
+
+            </th>
+
+
+            <th>
+
+                СПП
+
+            </th>
+
+
+            <th>
+
+                Цена<br>
+                продавца
+
+            </th>
+
+
+            <th>
+
+                Продажи
+
+            </th>
+
+
+            <!-- =================================================
+                 ПОЗАВЧЕРА
+                 ================================================= -->
+
+            <th class="day-separator">
+
+                Цена<br>
+                покупателя
+
+            </th>
+
+
+            <th>
+
+                СПП
+
+            </th>
+
+
+            <th>
+
+                Цена<br>
+                продавца
+
+            </th>
+
+
+            <th>
+
+                Продажи
+
+            </th>
+
+        </tr>
+
+    `;
+
+
+    // ========================================================
+    // BODY
+    // ========================================================
+
+    let html = '';
+
+
+    for (
+        const product of products
+    ) {
+
+        // ====================================================
+        // ДНИ ЭТОГО ТОВАРА
+        //
+        // НЕ ИСПОЛЬЗУЕМ d0/d1/d2,
+        // чтобы больше не путать даты.
+        // ====================================================
+
+        const today =
+            product.days[2];
+
+
+        const yesterday =
+            product.days[1];
+
+
+        const dayBefore =
+            product.days[0];
+
+
+        // ====================================================
+        // ЦЕНА ПОКУПАТЕЛЯ
+        //
+        // Сегодня сравниваем с вчера.
+        // Вчера сравниваем с позавчера.
+        // ====================================================
+
+        const buyerTodayClass =
+            getChangeClass(
+                today.buyerPrice,
+                yesterday.buyerPrice,
+                'price'
+            );
+
+
+        const buyerYesterdayClass =
+            getChangeClass(
+                yesterday.buyerPrice,
+                dayBefore.buyerPrice,
+                'price'
+            );
+
+
+        // ====================================================
+        // СПП
+        // ====================================================
+
+        const sppTodayClass =
+            getChangeClass(
+                today.spp,
+                yesterday.spp,
+                'spp'
+            );
+
+
+        const sppYesterdayClass =
+            getChangeClass(
+                yesterday.spp,
+                dayBefore.spp,
+                'spp'
+            );
+
+
+        // ====================================================
+        // ЦЕНА ПРОДАВЦА
+        // ====================================================
+
+        const sellerTodayClass =
+            getChangeClass(
+                today.sellerPrice,
+                yesterday.sellerPrice,
+                'price'
+            );
+
+
+        const sellerYesterdayClass =
+            getChangeClass(
+                yesterday.sellerPrice,
+                dayBefore.sellerPrice,
+                'price'
+            );
+
+
+        // ====================================================
+        // ПРОДАЖИ
+        //
+        // Вчера:
+        //
+        // 25.08 сравниваем с 24.08
+        //
+        // Сегодня НЕ подсвечиваем.
+        // ====================================================
+
+        const salesYesterdayClass =
+            getChangeClass(
+                yesterday.sales,
+                dayBefore.sales,
+                'sales'
+            );
+
+
+        // ====================================================
+        // HTML
+        // ====================================================
+
+        html += `
+
+        <tr>
+
+
+            <!-- =============================================
+                 ТОВАР
+                 ============================================= -->
+
+            <td
+                class="product-cell"
+                title="${escapeHtml(
+                    product.name || ''
+                )}"
+            >
+
+                <div class="product-name">
+
+                    ${escapeHtml(
+                        product.name ||
+                        'Без названия'
+                    )}
+
+                </div>
+
+
+                <div class="product-article">
+
+                    ${escapeHtml(
+                        product.article ||
+                        ''
+                    )}
+
+                    · nmId ${
+                        product.nmId
+                    }
+
+                </div>
+
+            </td>
+
+
+            <!-- =============================================
+                 СЕГОДНЯ
+                 ============================================= -->
+
+
+            <!-- Цена покупателя -->
+
+            <td
+                class="day-separator ${buyerTodayClass}"
+            >
+
+                ${formatMoney(
+                    today.buyerPrice
+                )}
+
+            </td>
+
+
+            <!-- СПП -->
+
+            <td
+                class="${sppTodayClass}"
+            >
+
+                ${formatPercent(
+                    today.spp
+                )}
+
+            </td>
+
+
+            <!-- Цена продавца -->
+
+            <td
+                class="${sellerTodayClass}"
+            >
+
+                ${formatMoney(
+                    today.sellerPrice
+                )}
+
+            </td>
+
+
+            <!-- Продажи БЕЗ подсветки -->
+
+            <td>
+
+                ${formatNumber(
+                    today.sales
+                )}
+
+            </td>
+
+
+            <!-- =============================================
+                 ВЧЕРА
+                 ============================================= -->
+
+
+            <!-- Цена покупателя -->
+
+            <td
+                class="day-separator ${buyerYesterdayClass}"
+            >
+
+                ${formatMoney(
+                    yesterday.buyerPrice
+                )}
+
+            </td>
+
+
+            <!-- СПП -->
+
+            <td
+                class="${sppYesterdayClass}"
+            >
+
+                ${formatPercent(
+                    yesterday.spp
+                )}
+
+            </td>
+
+
+            <!-- Цена продавца -->
+
+            <td
+                class="${sellerYesterdayClass}"
+            >
+
+                ${formatMoney(
+                    yesterday.sellerPrice
+                )}
+
+            </td>
+
+
+            <!-- Продажи -->
+
+            <td
+                class="${salesYesterdayClass}"
+            >
+
+                ${formatNumber(
+                    yesterday.sales
+                )}
+
+            </td>
+
+
+            <!-- =============================================
+                 ПОЗАВЧЕРА
+                 ============================================= -->
+
+
+            <!-- Цена покупателя -->
+
+            <td
+                class="day-separator"
+            >
+
+                ${formatMoney(
+                    dayBefore.buyerPrice
+                )}
+
+            </td>
+
+
+            <!-- СПП -->
+
+            <td>
+
+                ${formatPercent(
+                    dayBefore.spp
+                )}
+
+            </td>
+
+
+            <!-- Цена продавца -->
+
+            <td>
+
+                ${formatMoney(
+                    dayBefore.sellerPrice
+                )}
+
+            </td>
+
+
+            <!-- Продажи -->
+
+            <td>
+
+                ${formatNumber(
+                    dayBefore.sales
+                )}
+
+            </td>
+
+
+            <!-- =============================================
+                 ЗАКАЗЫ 30 ДНЕЙ
+                 ============================================= -->
+
+            <td
+                class="day-separator"
+            >
+
+                ${formatNumber(
+                    product.orders30
+                )}
+
+            </td>
+
+
+            <!-- =============================================
+                 ОСТАТОК
+                 ============================================= -->
+
+            <td
+                class="stock"
+            >
+
+                ${formatNumber(
+                    product.stockToday
+                )}
+
+            </td>
+
+
+            <!-- =============================================
+                 ХВАТИТ НА
+                 ============================================= -->
+
+            <td
+                class="days-left"
+            >
+
+                ${
+                    product.daysLeft === null
+
+                    ? '<span class="empty">∞</span>'
+
+                    : formatNumber(
+                        product.daysLeft,
+                        1
+                    ) + ' дн.'
+                }
+
+            </td>
+
+
+            <!-- =============================================
+                 ПОЗИЦИЯ
+                 ============================================= -->
+
+            <td
+                class="position"
+            >
+
+                ${formatNumber(
+                    product.positionToday,
+                    1
+                )}
+
+            </td>
+
+
+        </tr>
+
+        `;
+    }
+
+
+    // ========================================================
+    // ВЫВОД
+    // ========================================================
+
+    document
+        .getElementById('tableBody')
+        .innerHTML = html;
+}
+
+
+// ============================================================
+// ЗАГРУЗКА
+// ============================================================
+
+async function loadData() {
+
+    const button =
+        document.getElementById(
+            'refreshButton'
+        );
+
+
+    const status =
+        document.getElementById(
+            'status'
+        );
+
+
+    button.disabled = true;
+
+
+    status.textContent =
+        'Обновляем данные WB...';
+
+
+    document
+        .getElementById('tableBody')
+        .innerHTML = `
+
+            <tr>
+
+                <td
+                    colspan="17"
+                    class="loading"
+                >
+
+                    Получаем данные из WB...
+
+                    Это может занять
+                    несколько минут.
+
+                </td>
+
+            </tr>
+
+        `;
+
+
+    try {
+
+        const response =
+            await fetch(
+                '/api/dashboard?ts=' +
+                Date.now()
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok ||
+            !data.success
+        ) {
+
+            throw new Error(
+                data.error ||
+                `HTTP ${response.status}`
+            );
+        }
+
+
+        render(data);
+
+
+        const updated =
+            new Date(
+                data.updatedAt
+            );
+
+
+        status.textContent =
+            'Обновлено: ' +
+            updated.toLocaleTimeString(
+                'ru-RU'
+            );
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        status.textContent =
+            'Ошибка';
+
+
+        document
+            .getElementById('tableBody')
+            .innerHTML = `
+
+                <tr>
+
+                    <td
+                        colspan="17"
+                        class="error"
+                    >
+
+                        ${escapeHtml(
+                            error.message
+                        )}
+
+                    </td>
+
+                </tr>
+
+            `;
+
+    } finally {
+
+        button.disabled = false;
+    }
+}
+
+
+// ============================================================
+// КНОПКА
+// ============================================================
+
+document
+    .getElementById(
+        'refreshButton'
+    )
+    .addEventListener(
+        'click',
+        loadData
+    );
+
+
+// ============================================================
+// ПЕРВАЯ ЗАГРУЗКА
+// ============================================================
+
+loadData();
+
+
+</script>
+
+</body>
+
+</html>
