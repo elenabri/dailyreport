@@ -26,13 +26,12 @@
 
 html,
 body {
-    width: 100%;
+    margin: 0;
+    padding: 0;
 }
 
 
 body {
-
-    margin: 0;
 
     background: #f5f6f8;
 
@@ -43,7 +42,7 @@ body {
         Arial,
         sans-serif;
 
-    font-size: 12px;
+    font-size: 13px;
 }
 
 
@@ -51,12 +50,12 @@ body {
 
     width: 100%;
 
-    max-width: 1900px;
+    max-width: 2200px;
 
-    margin: auto;
+    margin: 0 auto;
 
     padding:
-        12px 14px;
+        12px 16px;
 }
 
 
@@ -72,13 +71,13 @@ body {
 
     align-items: center;
 
-    margin-bottom: 9px;
+    margin-bottom: 10px;
 }
 
 
 .title {
 
-    font-size: 19px;
+    font-size: 20px;
 
     font-weight: 700;
 }
@@ -120,7 +119,7 @@ button {
 
     padding:
         7px
-        11px;
+        12px;
 
     background: #111827;
 
@@ -149,12 +148,10 @@ button:disabled {
 
 
 /* =========================================================
-   TABLE CONTAINER
+   TABLE
    ========================================================= */
 
 .table-container {
-
-    width: 100%;
 
     background: white;
 
@@ -163,17 +160,20 @@ button:disabled {
 
     border-radius: 10px;
 
-    overflow: hidden;
-
     box-shadow:
         0 2px 7px
         rgba(0,0,0,.03);
+
+    /*
+       ВАЖНО:
+       здесь больше НЕТ overflow:auto,
+       чтобы не появлялся внутренний
+       вертикальный скролл.
+    */
+
+    overflow: visible;
 }
 
-
-/* =========================================================
-   TABLE
-   ========================================================= */
 
 table {
 
@@ -183,9 +183,7 @@ table {
 
     width: 100%;
 
-    min-width: 0;
-
-    table-layout: fixed;
+    table-layout: auto;
 }
 
 
@@ -205,12 +203,13 @@ th {
 
     color: #68707c;
 
-    font-size: 9px;
+    font-size: 10px;
 
     font-weight: 700;
 
     padding:
-        4px 2px;
+        5px
+        5px;
 
     border-bottom:
         1px solid #e5e7eb;
@@ -231,14 +230,11 @@ th.product-header {
 
     text-align: center;
 
-    width: 235px;
+    width: 330px;
 
-    min-width: 235px;
+    min-width: 330px;
 
-    max-width: 235px;
-
-    padding:
-        4px 6px;
+    max-width: 330px;
 }
 
 
@@ -250,12 +246,13 @@ th.product-header {
 
     text-align: center;
 
-    font-size: 10px;
+    font-size: 11px;
 
     color: #242932;
 
-    padding:
-        4px 2px;
+    padding-top: 5px;
+
+    padding-bottom: 4px;
 }
 
 
@@ -280,7 +277,8 @@ th.product-header {
 td {
 
     padding:
-        3px 2px;
+        4px
+        5px;
 
     border-bottom:
         1px solid #edf0f3;
@@ -289,12 +287,10 @@ td {
 
     text-align: right;
 
-    font-size: 10px;
-
-    line-height: 1.1;
-
     font-variant-numeric:
         tabular-nums;
+
+    line-height: 1.05;
 }
 
 
@@ -310,11 +306,11 @@ tbody tr:hover td {
 
 .product-cell {
 
-    width: 235px;
+    width: 330px;
 
-    min-width: 235px;
+    min-width: 330px;
 
-    max-width: 235px;
+    max-width: 330px;
 
     text-align: left;
 
@@ -325,7 +321,8 @@ tbody tr:hover td {
     vertical-align: middle;
 
     padding:
-        3px 6px;
+        4px
+        7px;
 }
 
 
@@ -336,6 +333,11 @@ tbody tr:hover td {
     line-height: 1.12;
 
     overflow: hidden;
+
+    /*
+       Теперь максимум 2 строки,
+       чтобы уменьшить высоту строки.
+    */
 
     display: -webkit-box;
 
@@ -355,11 +357,9 @@ tbody tr:hover td {
 
     color: #858b95;
 
-    font-size: 9px;
+    font-size: 10px;
 
-    margin-top: 1px;
-
-    line-height: 1.05;
+    margin-top: 2px;
 
     overflow: hidden;
 
@@ -440,7 +440,7 @@ tbody tr:hover td {
 
 .error {
 
-    padding: 25px;
+    padding: 30px;
 
     text-align: center;
 
@@ -450,7 +450,7 @@ tbody tr:hover td {
 
 .loading {
 
-    padding: 25px;
+    padding: 30px;
 
     text-align: center;
 
@@ -459,24 +459,11 @@ tbody tr:hover td {
 
 
 /* =========================================================
-   ЧИСЛОВЫЕ КОЛОНКИ
-   ========================================================= */
-
-table th:not(.product-header),
-table td:not(.product-cell) {
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-}
-
-
-/* =========================================================
    MOBILE
    ========================================================= */
 
 @media (
-    max-width: 1100px
+    max-width: 800px
 ) {
 
     .container {
@@ -486,66 +473,13 @@ table td:not(.product-cell) {
     }
 
 
-    th {
-
-        font-size: 8px;
-
-        padding:
-            3px 1px;
-    }
-
-
-    td {
-
-        font-size: 9px;
-
-        padding:
-            3px 1px;
-    }
-
-
-    .product-cell,
-    th.product-header {
-
-        width: 200px;
-
-        min-width: 200px;
-
-        max-width: 200px;
-    }
-
-
-    .product-name {
-
-        font-size: 11px;
-    }
-
-
-    .product-article {
-
-        font-size: 8px;
-    }
-}
-
-
-@media (
-    max-width: 800px
-) {
-
-    .container {
-
-        padding:
-            6px;
-    }
-
-
     .header {
 
         align-items: flex-start;
 
         flex-direction: column;
 
-        gap: 7px;
+        gap: 8px;
     }
 
 
@@ -558,32 +492,46 @@ table td:not(.product-cell) {
     }
 
 
-    /*
-       На маленьком экране
-       горизонтальный скролл разрешаем,
-       иначе таблица станет нечитаемой.
-    */
-
     .table-container {
 
         overflow-x: auto;
+
+        overflow-y: visible;
     }
 
 
     table {
 
-        min-width: 1150px;
+        min-width: 1250px;
     }
 
 
     .product-cell,
     th.product-header {
 
-        width: 190px;
+        width: 220px;
 
-        min-width: 190px;
+        min-width: 220px;
 
-        max-width: 190px;
+        max-width: 220px;
+    }
+
+
+    th {
+
+        font-size: 9px;
+
+        padding:
+            4px;
+    }
+
+
+    td {
+
+        font-size: 11px;
+
+        padding:
+            4px;
     }
 }
 
@@ -828,60 +776,40 @@ function formatDate(date) {
 
 // ============================================================
 // ЗАКАЗЫ ЗА 3 ДНЯ
+//
+// days[0] = позавчера
+// days[1] = вчера
+// days[2] = сегодня
 // ============================================================
 
-function getSales3(product) {
+function getOrders3(product) {
 
-    const days =
-        product.days || [];
+    if (
+        !Array.isArray(product.days)
+    ) {
+
+        return 0;
+    }
 
 
-    return days.reduce(
-        (
-            sum,
-            day
-        ) => {
+    return product.days
+        .slice(-3)
+        .reduce(
+            (
+                sum,
+                day
+            ) => {
 
-            return sum +
-                Number(
-                    day?.sales || 0
+                return (
+                    sum +
+                    Number(
+                        day?.sales || 0
+                    )
                 );
 
-        },
-        0
-    );
-}
-
-
-// ============================================================
-// ФИЛЬТР ТОВАРА
-//
-// Показываем:
-//
-// остаток > 0
-//
-// ИЛИ
-//
-// были заказы хотя бы в один
-// из последних 3 дней.
-// ============================================================
-
-function shouldShowProduct(product) {
-
-    const stock =
-        Number(
-            product.stockToday || 0
+            },
+            0
         );
-
-
-    const sales3 =
-        getSales3(product);
-
-
-    return (
-        stock > 0 ||
-        sales3 > 0
-    );
 }
 
 
@@ -946,6 +874,10 @@ function getChangeClass(
     }
 
 
+    // ========================================================
+    // ЦЕНА
+    // ========================================================
+
     if (
         type === 'price'
     ) {
@@ -962,6 +894,10 @@ function getChangeClass(
     }
 
 
+    // ========================================================
+    // СПП
+    // ========================================================
+
     if (
         type === 'spp'
     ) {
@@ -977,6 +913,10 @@ function getChangeClass(
         return 'down';
     }
 
+
+    // ========================================================
+    // ПРОДАЖИ
+    // ========================================================
 
     if (
         type === 'sales'
@@ -999,106 +939,186 @@ function getChangeClass(
 
 
 // ============================================================
-// RENDER
+// ФИЛЬТР ТОВАРОВ
+//
+// Показываем товар, если:
+//
+// остаток > 0
+//
+// ИЛИ
+//
+// были заказы хотя бы в один
+// из последних 3 дней.
+//
+// ВАЖНО:
+//
+// Товар с остатком 0 и заказами 0 за 3 дня
+// НЕ показывается.
+//
+// Товар с остатком > 0 и заказами 0
+// ПОКАЗЫВАЕТСЯ.
+//
+// Товар с остатком 0 и заказами > 0
+// ПОКАЗЫВАЕТСЯ.
 // ============================================================
 
-function render(data) {
+function filterProducts(products) {
+
+    return products.filter(
+        product => {
+
+            const stock =
+                Number(
+                    product.stockToday || 0
+                );
 
 
-    // ========================================================
-    // ПОЛУЧАЕМ ТОВАРЫ
-    // ========================================================
-
-    let products =
-        data.products || [];
-
-
-    // ========================================================
-    // ФИЛЬТР
-    //
-    // Остаток > 0
-    //
-    // ИЛИ
-    //
-    // заказы за 3 дня > 0
-    // ========================================================
-
-    products =
-        products.filter(
-            product =>
-                shouldShowProduct(
+            const orders3 =
+                getOrders3(
                     product
-                )
-        );
+                );
 
 
-    // ========================================================
-    // СОРТИРОВКА
-    //
-    // ПО ВОЗРАСТАНИЮ
-    //
-    // Сумма заказов:
-    //
-    // позавчера +
-    // вчера +
-    // сегодня
-    // ========================================================
+            return (
+                stock > 0 ||
+                orders3 > 0
+            );
+        }
+    );
+}
 
-    products.sort(
+
+// ============================================================
+// СОРТИРОВКА
+//
+// По ВОЗРАСТАНИЮ:
+//
+// сумма заказов за 3 дня.
+//
+// Например:
+//
+// 0
+// 0
+// 1
+// 2
+// 2
+// 3
+// 5
+// 7
+// ...
+//
+// Если сумма одинаковая,
+// дополнительно сортируем по nmId.
+// ============================================================
+
+function sortProducts(products) {
+
+    return products.sort(
         (
             a,
             b
         ) => {
 
-            const salesA =
-                getSales3(a);
+            const ordersA =
+                getOrders3(a);
 
 
-            const salesB =
-                getSales3(b);
+            const ordersB =
+                getOrders3(b);
+
+
+            if (
+                ordersA !== ordersB
+            ) {
+
+                return (
+                    ordersA -
+                    ordersB
+                );
+            }
 
 
             return (
-                salesA -
-                salesB
+                Number(a.nmId || 0) -
+                Number(b.nmId || 0)
             );
         }
     );
+}
 
 
-    // ========================================================
-    // ПЕРИОД
-    // ========================================================
+// ============================================================
+// RENDER
+// ============================================================
+
+function render(data) {
+
+    /*
+       Получаем исходный список.
+    */
+
+    let products =
+        data.products || [];
+
+
+    /*
+       ========================================================
+       ФИЛЬТР
+       ========================================================
+
+       Остаток > 0
+       ИЛИ
+       заказы за 3 дня > 0
+    */
+
+    products =
+        filterProducts(
+            products
+        );
+
+
+    /*
+       ========================================================
+       СОРТИРОВКА
+       ========================================================
+
+       Возрастание заказов за 3 дня.
+    */
+
+    products =
+        sortProducts(
+            products
+        );
+
+
+    /*
+       ========================================================
+       ПЕРИОД
+       ========================================================
+    */
 
     document
         .getElementById('period')
         .textContent =
 
         `Заказы: ${
-            formatDate(
-                data.period.from
-            )
+            formatDate(data.period.from)
         } — ${
-            formatDate(
-                data.period.to
-            )
+            formatDate(data.period.to)
         } · товаров: ${
             products.length
         }`;
 
 
-    // ========================================================
-    // НЕТ ТОВАРОВ
-    // ========================================================
+    /*
+       ========================================================
+       НЕТ ТОВАРОВ
+       ========================================================
+    */
 
     if (
         !products.length
     ) {
-
-        document
-            .getElementById('tableHead')
-            .innerHTML = '';
-
 
         document
             .getElementById('tableBody')
@@ -1111,8 +1131,8 @@ function render(data) {
                         class="error"
                     >
 
-                        Нет товаров с остатком
-                        или заказами за последние 3 дня.
+                        Нет товаров,
+                        удовлетворяющих условиям.
 
                     </td>
 
@@ -1124,13 +1144,17 @@ function render(data) {
     }
 
 
-    // ========================================================
-    // ДНИ
-    //
-    // days[0] = позавчера
-    // days[1] = вчера
-    // days[2] = сегодня
-    // ========================================================
+    /*
+       ========================================================
+       ДНИ
+       ========================================================
+
+       Сервер отдаёт:
+
+       days[0] = позавчера
+       days[1] = вчера
+       days[2] = сегодня
+    */
 
     const firstProduct =
         products[0];
@@ -1148,9 +1172,11 @@ function render(data) {
         firstProduct.days[0];
 
 
-    // ========================================================
-    // HEADER
-    // ========================================================
+    /*
+       ========================================================
+       HEADER
+       ========================================================
+    */
 
     document
         .getElementById('tableHead')
@@ -1178,9 +1204,7 @@ function render(data) {
                 Сегодня
 
                 <span class="day-date">
-                    ${formatDate(
-                        today.date
-                    )}
+                    ${formatDate(today.date)}
                 </span>
 
             </th>
@@ -1196,9 +1220,7 @@ function render(data) {
                 Вчера
 
                 <span class="day-date">
-                    ${formatDate(
-                        yesterday.date
-                    )}
+                    ${formatDate(yesterday.date)}
                 </span>
 
             </th>
@@ -1214,9 +1236,7 @@ function render(data) {
                 Позавчера
 
                 <span class="day-date">
-                    ${formatDate(
-                        dayBefore.date
-                    )}
+                    ${formatDate(dayBefore.date)}
                 </span>
 
             </th>
@@ -1278,12 +1298,10 @@ function render(data) {
                  СЕГОДНЯ
                  ================================================= -->
 
-            <th
-                class="day-separator"
-            >
+            <th class="day-separator">
 
                 Цена<br>
-                покуп.
+                покупателя
 
             </th>
 
@@ -1298,7 +1316,7 @@ function render(data) {
             <th>
 
                 Цена<br>
-                продав.
+                продавца
 
             </th>
 
@@ -1314,12 +1332,10 @@ function render(data) {
                  ВЧЕРА
                  ================================================= -->
 
-            <th
-                class="day-separator"
-            >
+            <th class="day-separator">
 
                 Цена<br>
-                покуп.
+                покупателя
 
             </th>
 
@@ -1334,7 +1350,7 @@ function render(data) {
             <th>
 
                 Цена<br>
-                продав.
+                продавца
 
             </th>
 
@@ -1350,12 +1366,10 @@ function render(data) {
                  ПОЗАВЧЕРА
                  ================================================= -->
 
-            <th
-                class="day-separator"
-            >
+            <th class="day-separator">
 
                 Цена<br>
-                покуп.
+                покупателя
 
             </th>
 
@@ -1370,7 +1384,7 @@ function render(data) {
             <th>
 
                 Цена<br>
-                продав.
+                продавца
 
             </th>
 
@@ -1386,9 +1400,11 @@ function render(data) {
     `;
 
 
-    // ========================================================
-    // BODY
-    // ========================================================
+    /*
+       ========================================================
+       BODY
+       ========================================================
+    */
 
     let html = '';
 
@@ -1397,10 +1413,11 @@ function render(data) {
         const product of products
     ) {
 
-
-        // ====================================================
-        // ДНИ
-        // ====================================================
+        /*
+           ====================================================
+           ДНИ
+           ====================================================
+        */
 
         const today =
             product.days[2];
@@ -1414,9 +1431,11 @@ function render(data) {
             product.days[0];
 
 
-        // ====================================================
-        // ЦЕНА ПОКУПАТЕЛЯ
-        // ====================================================
+        /*
+           ====================================================
+           ЦЕНА ПОКУПАТЕЛЯ
+           ====================================================
+        */
 
         const buyerTodayClass =
             getChangeClass(
@@ -1434,9 +1453,11 @@ function render(data) {
             );
 
 
-        // ====================================================
-        // СПП
-        // ====================================================
+        /*
+           ====================================================
+           СПП
+           ====================================================
+        */
 
         const sppTodayClass =
             getChangeClass(
@@ -1454,9 +1475,11 @@ function render(data) {
             );
 
 
-        // ====================================================
-        // ЦЕНА ПРОДАВЦА
-        // ====================================================
+        /*
+           ====================================================
+           ЦЕНА ПРОДАВЦА
+           ====================================================
+        */
 
         const sellerTodayClass =
             getChangeClass(
@@ -1474,13 +1497,15 @@ function render(data) {
             );
 
 
-        // ====================================================
-        // ПРОДАЖИ
-        //
-        // Вчера сравниваем с позавчера.
-        //
-        // Сегодня не подсвечиваем.
-        // ====================================================
+        /*
+           ====================================================
+           ПРОДАЖИ
+           ====================================================
+
+           Вчера сравниваем с позавчера.
+
+           Сегодня не подсвечиваем.
+        */
 
         const salesYesterdayClass =
             getChangeClass(
@@ -1490,9 +1515,11 @@ function render(data) {
             );
 
 
-        // ====================================================
-        // HTML
-        // ====================================================
+        /*
+           ====================================================
+           HTML
+           ====================================================
+        */
 
         html += `
 
@@ -1544,9 +1571,7 @@ function render(data) {
             <!-- Цена покупателя -->
 
             <td
-                class="day-separator ${
-                    buyerTodayClass
-                }"
+                class="day-separator ${buyerTodayClass}"
             >
 
                 ${formatMoney(
@@ -1559,9 +1584,7 @@ function render(data) {
             <!-- СПП -->
 
             <td
-                class="${
-                    sppTodayClass
-                }"
+                class="${sppTodayClass}"
             >
 
                 ${formatPercent(
@@ -1574,9 +1597,7 @@ function render(data) {
             <!-- Цена продавца -->
 
             <td
-                class="${
-                    sellerTodayClass
-                }"
+                class="${sellerTodayClass}"
             >
 
                 ${formatMoney(
@@ -1605,9 +1626,7 @@ function render(data) {
             <!-- Цена покупателя -->
 
             <td
-                class="day-separator ${
-                    buyerYesterdayClass
-                }"
+                class="day-separator ${buyerYesterdayClass}"
             >
 
                 ${formatMoney(
@@ -1620,9 +1639,7 @@ function render(data) {
             <!-- СПП -->
 
             <td
-                class="${
-                    sppYesterdayClass
-                }"
+                class="${sppYesterdayClass}"
             >
 
                 ${formatPercent(
@@ -1635,9 +1652,7 @@ function render(data) {
             <!-- Цена продавца -->
 
             <td
-                class="${
-                    sellerYesterdayClass
-                }"
+                class="${sellerYesterdayClass}"
             >
 
                 ${formatMoney(
@@ -1650,9 +1665,7 @@ function render(data) {
             <!-- Продажи -->
 
             <td
-                class="${
-                    salesYesterdayClass
-                }"
+                class="${salesYesterdayClass}"
             >
 
                 ${formatNumber(
@@ -1787,9 +1800,11 @@ function render(data) {
     }
 
 
-    // ========================================================
-    // ВЫВОД
-    // ========================================================
+    /*
+       ========================================================
+       ВЫВОД
+       ========================================================
+    */
 
     document
         .getElementById('tableBody')
