@@ -6,7 +6,10 @@ const crypto = require('crypto');
 const path = require('path');
 
 const app = express();
+const { execFile } = require('child_process');
+const { promisify } = require('util');
 
+const execFileAsync = promisify(execFile);
 
 // ============================================================
 // ГЛАВНАЯ СТРАНИЦА
@@ -526,25 +529,7 @@ async function getCurrentSellerPrices(
 }
 
 
-// ============================================================
-// ТЕКУЩАЯ ЦЕНА ПОКУПАТЕЛЯ
-//
-// VERCEL:
-//
-// НИКАКОГО curl.exe.
-//
-// Используем обычный fetch.
-//
-// Берём:
-//
-// sizes[0].price.product
-//
-// Это цена покупателя из card.wb.ru.
-// ============================================================
-
-async function getCurrentBuyerPrice(
-    nmId
-) {
+async function getCurrentBuyerPrice(nmId) {
 
     const url =
         'https://card.wb.ru/cards/v4/detail' +
@@ -558,35 +543,40 @@ async function getCurrentBuyerPrice(
         `Получаем текущую цену покупателя: ${nmId}`
     );
 
-    const response =
-        await fetch(
-            url,
-            {
-                method: 'GET',
+    const response = await fetch(
+        url,
+        {
+            method: 'GET',
 
-                headers: {
-                    Accept:
-                        'application/json',
+            headers: {
+                'Accept': 'application/json',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'User-Agent':
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150 Safari/537.36',
+                'Referer':
+                    'https://www.wildberries.ru/',
+                'Origin':
+                    'https://www.wildberries.ru/'
+            },
 
-                    'User-Agent':
-                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/150 Safari/537.36',
-
-                    Referer:
-                        'https://www.wildberries.ru/',
-
-                    Origin:
-                        'https://www.wildberries.ru/'
-                },
-
-                signal:
-                    AbortSignal.timeout(30000)
-            }
-        );
+            signal:
+                AbortSignal.timeout(30000)
+        }
+    );
 
     const text =
         await response.text();
 
+    console.log(
+        `card.wb.ru ${nmId}: HTTP ${response.status}`
+    );
+
     if (!response.ok) {
+
+        console.error(
+            `card.wb.ru ${nmId}:`,
+            text.slice(0, 1000)
+        );
 
         throw new Error(
             `card.wb.ru ${response.status}: ${text.slice(0, 500)}`
@@ -603,7 +593,7 @@ async function getCurrentBuyerPrice(
     } catch {
 
         throw new Error(
-            `card.wb.ru вернул не JSON:\n${text.slice(0, 1000)}`
+            `card.wb.ru вернул не JSON: ${text.slice(0, 500)}`
         );
     }
 
@@ -633,11 +623,15 @@ async function getCurrentBuyerPrice(
         );
     }
 
-    return (
-        Number(priceKopecks) / 100
-    );
-}
+    const price =
+        Number(priceKopecks) / 100;
 
+    console.log(
+        `Цена покупателя ${nmId}: ${price} ₽`
+    );
+
+    return price;
+}
 
 // ============================================================
 // ЦЕНЫ И СПП СЕГОДНЯ
