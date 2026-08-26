@@ -3,8 +3,27 @@ require('dotenv').config();
 const express = require('express');
 const AdmZip = require('adm-zip');
 const crypto = require('crypto');
+const path = require('path');
 
 const app = express();
+
+
+// ============================================================
+// ГЛАВНАЯ СТРАНИЦА
+// ============================================================
+
+app.get('/', (req, res) => {
+
+    res.sendFile(
+        path.join(
+            __dirname,
+            'public',
+            'index.html'
+        )
+    );
+
+});
+
 
 const WB_TOKEN = process.env.WB_TOKEN;
 
