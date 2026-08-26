@@ -327,29 +327,13 @@ tbody tr:hover td {
 
 
 .product-name {
-
     font-weight: 600;
+    font-size: 10px;
+    line-height: 1.05;
 
-    line-height: 1.12;
-
+    white-space: nowrap;
     overflow: hidden;
-
-    /*
-       Теперь максимум 2 строки,
-       чтобы уменьшить высоту строки.
-    */
-
-    display: -webkit-box;
-
-    -webkit-box-orient: vertical;
-
-    -webkit-line-clamp: 2;
-
-    line-clamp: 2;
-
-    white-space: normal;
-
-    overflow-wrap: anywhere;
+    text-overflow: ellipsis;
 }
 
 
