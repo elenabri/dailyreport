@@ -527,7 +527,42 @@ async function getCurrentSellerPrices(
 
     return prices;
 }
+app.get('/api/test-buyer-price', async (req, res) => {
 
+    const nmId = Number(req.query.nm);
+
+    if (!nmId) {
+        return res.status(400).json({
+            success: false,
+            error: 'Укажи ?nm=123456789'
+        });
+    }
+
+    try {
+
+        const price =
+            await getCurrentBuyerPrice(nmId);
+
+        res.json({
+            success: true,
+            nmId,
+            buyerPrice: price
+        });
+
+    } catch (error) {
+
+        console.error(
+            'TEST BUYER PRICE ERROR:',
+            error
+        );
+
+        res.status(500).json({
+            success: false,
+            nmId,
+            error: error.message
+        });
+    }
+});
 
 async function getCurrentBuyerPrice(nmId) {
 
@@ -540,17 +575,23 @@ async function getCurrentBuyerPrice(nmId) {
         `&nm=${nmId}`;
 
     console.log(
-        `Получаем текущую цену покупателя: ${nmId}`
+        '========================================'
     );
 
-    const response = await fetch(
-        url,
-        {
+    console.log(
+        `BUYER PRICE TEST: ${nmId}`
+    );
+
+    console.log(
+        `URL: ${url}`
+    );
+
+    const response =
+        await fetch(url, {
             method: 'GET',
 
             headers: {
                 'Accept': 'application/json',
-                'Accept-Encoding': 'gzip, deflate, br',
                 'User-Agent':
                     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150 Safari/537.36',
                 'Referer':
@@ -561,25 +602,23 @@ async function getCurrentBuyerPrice(nmId) {
 
             signal:
                 AbortSignal.timeout(30000)
-        }
-    );
+        });
 
     const text =
         await response.text();
 
     console.log(
-        `card.wb.ru ${nmId}: HTTP ${response.status}`
+        `card.wb.ru STATUS: ${response.status}`
+    );
+
+    console.log(
+        `card.wb.ru RESPONSE: ${text.slice(0, 1000)}`
     );
 
     if (!response.ok) {
 
-        console.error(
-            `card.wb.ru ${nmId}:`,
-            text.slice(0, 1000)
-        );
-
         throw new Error(
-            `card.wb.ru ${response.status}: ${text.slice(0, 500)}`
+            `card.wb.ru HTTP ${response.status}: ${text.slice(0, 500)}`
         );
     }
 
@@ -611,12 +650,15 @@ async function getCurrentBuyerPrice(nmId) {
         );
     }
 
+    console.log(
+        'PRODUCT:',
+        JSON.stringify(product).slice(0, 2000)
+    );
+
     const priceKopecks =
         product?.sizes?.[0]?.price?.product;
 
-    if (
-        priceKopecks == null
-    ) {
+    if (priceKopecks == null) {
 
         throw new Error(
             `price.product отсутствует у ${nmId}`
@@ -627,7 +669,7 @@ async function getCurrentBuyerPrice(nmId) {
         Number(priceKopecks) / 100;
 
     console.log(
-        `Цена покупателя ${nmId}: ${price} ₽`
+        `BUYER PRICE RESULT: ${price} ₽`
     );
 
     return price;
