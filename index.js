@@ -402,7 +402,406 @@ async function wbPostRetry(
         }
     }
 }
+// ============================================================
+// РЕКЛАМА — FULLSTATS
+//
+// Получаем рекламу за период.
+// Результат:
+//
+// advertising[nmId][date] = {
+//     views,
+//     clicks,
+//     atbs,
+//     spend
+// }
+//
+// Если товар находится в нескольких кампаниях,
+// показатели складываются.
+// ============================================================
 
+async function getPromotionStats(
+    dateFrom,
+    dateTo
+) {
+
+    console.log('');
+    console.log(
+        '========================================'
+    );
+    console.log(
+        'ПОЛУЧАЕМ РЕКЛАМУ WB'
+    );
+    console.log(
+        `${dateFrom} -> ${dateTo}`
+    );
+    console.log(
+        '========================================'
+    );
+
+
+    // --------------------------------------------------------
+    // 1. Получаем все кампании
+    // --------------------------------------------------------
+
+    const promotionUrl =
+        'https://advert-api.wildberries.ru/adv/v1/promotion/count';
+
+
+    const promotionResponse =
+        await wbGet(
+            promotionUrl
+        );
+
+
+    const campaignIds =
+        [];
+
+
+    const groups =
+        Array.isArray(
+            promotionResponse?.adverts
+        )
+            ? promotionResponse.adverts
+            : [];
+
+
+    const uniqueIds =
+        new Set();
+
+
+    for (
+        const group of groups
+    ) {
+
+        const list =
+            Array.isArray(
+                group?.advert_list
+            )
+                ? group.advert_list
+                : [];
+
+
+        for (
+            const advert of list
+        ) {
+
+            const advertId =
+                Number(
+                    advert?.advertId
+                );
+
+
+            if (
+                advertId > 0
+            ) {
+
+                uniqueIds.add(
+                    advertId
+                );
+
+            }
+
+        }
+
+    }
+
+
+    campaignIds.push(
+        ...uniqueIds
+    );
+
+
+    console.log(
+        'Всего рекламных кампаний:',
+        campaignIds.length
+    );
+
+
+    if (
+        !campaignIds.length
+    ) {
+
+        return {};
+
+    }
+
+
+    // --------------------------------------------------------
+    // 2. FULLSTATS максимум 50 кампаний
+    // --------------------------------------------------------
+
+    const result = {};
+
+
+    for (
+        let i = 0;
+        i < campaignIds.length;
+        i += 50
+    ) {
+
+        const batch =
+            campaignIds.slice(
+                i,
+                i + 50
+            );
+
+
+        console.log('');
+        console.log(
+            `FULLSTATS ${i + 1}-${Math.min(
+                i + 50,
+                campaignIds.length
+            )} из ${campaignIds.length}`
+        );
+
+
+        const url =
+            'https://advert-api.wildberries.ru/adv/v3/fullstats' +
+            `?ids=${batch.join(',')}` +
+            `&beginDate=${dateFrom}` +
+            `&endDate=${dateTo}`;
+
+
+        const stats =
+            await wbGet(
+                url
+            );
+
+
+        if (
+            !Array.isArray(stats)
+        ) {
+
+            console.log(
+                'FULLSTATS вернул не массив:',
+                stats
+            );
+
+            continue;
+
+        }
+
+
+        // ----------------------------------------------------
+        // 3. Разбираем кампании
+        // ----------------------------------------------------
+
+        for (
+            const campaign of stats
+        ) {
+
+            const days =
+                Array.isArray(
+                    campaign?.days
+                )
+                    ? campaign.days
+                    : [];
+
+
+            for (
+                const day of days
+            ) {
+
+                const date =
+                    String(
+                        day?.date || ''
+                    ).slice(0, 10);
+
+
+                if (!date) {
+                    continue;
+                }
+
+
+                // ------------------------------------------------
+                // apps
+                // ------------------------------------------------
+
+                const apps =
+                    Array.isArray(
+                        day?.apps
+                    )
+                        ? day.apps
+                        : [];
+
+
+                for (
+                    const appStats of apps
+                ) {
+
+                    const nms =
+                        Array.isArray(
+                            appStats?.nms
+                        )
+                            ? appStats.nms
+                            : [];
+
+
+                    for (
+                        const nm of nms
+                    ) {
+
+                        const nmId =
+                            Number(
+                                nm?.nmId
+                            );
+
+
+                        if (
+                            !nmId
+                        ) {
+                            continue;
+                        }
+
+
+                        if (
+                            !result[nmId]
+                        ) {
+
+                            result[nmId] = {};
+
+                        }
+
+
+                        if (
+                            !result[nmId][date]
+                        ) {
+
+                            result[nmId][date] = {
+
+                                views: 0,
+
+                                clicks: 0,
+
+                                atbs: 0,
+
+                                spend: 0
+
+                            };
+
+                        }
+
+
+                        const target =
+                            result[nmId][date];
+
+
+                        // ----------------------------------------
+                        // СКЛАДЫВАЕМ
+                        //
+                        // Это важно:
+                        // один товар может быть в нескольких
+                        // рекламных кампаниях.
+                        // ----------------------------------------
+
+                        target.views +=
+                            Number(
+                                nm?.views || 0
+                            );
+
+
+                        target.clicks +=
+                            Number(
+                                nm?.clicks || 0
+                            );
+
+
+                        target.atbs +=
+                            Number(
+                                nm?.atbs || 0
+                            );
+
+
+                        target.spend +=
+                            Number(
+                                nm?.sum || 0
+                            );
+
+                    }
+
+                }
+
+            }
+
+        }
+
+
+        // ----------------------------------------------------
+        // Не долбим WB
+        // ----------------------------------------------------
+
+        if (
+            i + 50 <
+            campaignIds.length
+        ) {
+
+            console.log(
+                'Пауза 21 сек перед следующим FULLSTATS...'
+            );
+
+            await sleep(
+                21000
+            );
+
+        }
+
+    }
+
+
+    // --------------------------------------------------------
+    // 4. CPM
+    // --------------------------------------------------------
+
+    for (
+        const nmId of Object.keys(result)
+    ) {
+
+        for (
+            const date of Object.keys(
+                result[nmId]
+            )
+        ) {
+
+            const item =
+                result[nmId][date];
+
+
+            item.spend =
+                Number(
+                    item.spend.toFixed(2)
+                );
+
+
+            item.cpm =
+                item.views > 0
+                    ? Number(
+                        (
+                            item.spend /
+                            item.views *
+                            1000
+                        ).toFixed(2)
+                    )
+                    : 0;
+
+        }
+
+    }
+
+
+    console.log(
+        'Рекламных связок nmId × день:',
+        Object.values(result)
+            .reduce(
+                (sum, x) =>
+                    sum +
+                    Object.keys(x).length,
+                0
+            )
+    );
+
+
+    return result;
+}
 
 // ============================================================
 // ТЕКУЩИЕ ЦЕНЫ ПРОДАВЦА
@@ -1799,7 +2198,15 @@ async function buildDashboard() {
     const last3 =
         dates.slice(-3);
 
+// ========================================================
+// РЕКЛАМА ЗА ПОСЛЕДНИЕ 3 ДНЯ
+// ========================================================
 
+const promotionStats =
+    await getPromotionStats(
+        last3[0],
+        last3[last3.length - 1]
+    );
     // ========================================================
     // ПОСЛЕДНИЕ 7 ДНЕЙ
     // ========================================================
@@ -1908,64 +2315,131 @@ async function buildDashboard() {
         // ----------------------------------------------------
 
         const days =
-            last3.map(
-                date => {
+    last3.map(
+        date => {
 
-                    const d =
-                        product.days[date] || {};
-
-                    return {
-
-                        date,
-
-                        buyerPrice:
-                            d.buyerPrice,
-
-                        spp:
-                            d.spp,
-
-                        sellerPrice:
-                            d.sellerPrice,
-
-                        sales:
-                            Number(
-                                d.sales || 0
-                            ),
-
-                        buyerPriceSource:
-
-                            date === today
-                                ? 'current-api'
-                                : (
-                                    d.buyerPrice == null
-                                        ? null
-                                        : 'order'
-                                ),
-
-                        sellerPriceSource:
-
-                            date === today
-                                ? 'current-api'
-                                : (
-                                    d.sellerPrice == null
-                                        ? null
-                                        : 'order'
-                                ),
-
-                        sppSource:
-
-                            date === today
-                                ? 'calculated'
-                                : (
-                                    d.spp == null
-                                        ? null
-                                        : 'order'
-                                )
-                    };
-                }
-            );
+            const d =
+                product.days[date] || {};
 
 
+            // ------------------------------------------------
+            // РЕКЛАМА ЭТОГО nmId В ЭТОТ ДЕНЬ
+            // ------------------------------------------------
+
+            const advertising =
+                promotionStats[nmId]?.[date] || {
+
+                    views: 0,
+
+                    clicks: 0,
+
+                    atbs: 0,
+
+                    cpm: 0,
+
+                    spend: 0
+
+                };
+
+
+            return {
+
+                date,
+
+
+                // =================================================
+                // ПРОДАЖИ
+                // =================================================
+
+                buyerPrice:
+                    d.buyerPrice,
+
+                spp:
+                    d.spp,
+
+                sellerPrice:
+                    d.sellerPrice,
+
+                sales:
+                    Number(
+                        d.sales || 0
+                    ),
+
+
+                // =================================================
+                // РЕКЛАМА
+                // =================================================
+
+                advertising: {
+
+                    views:
+                        Number(
+                            advertising.views || 0
+                        ),
+
+                    clicks:
+                        Number(
+                            advertising.clicks || 0
+                        ),
+
+                    atbs:
+                        Number(
+                            advertising.atbs || 0
+                        ),
+
+                    cpm:
+                        Number(
+                            advertising.cpm || 0
+                        ),
+
+                    spend:
+                        Number(
+                            advertising.spend || 0
+                        )
+
+                },
+
+
+                // =================================================
+                // ИСТОЧНИКИ ЦЕН
+                // =================================================
+
+                buyerPriceSource:
+
+                    date === today
+                        ? 'current-api'
+                        : (
+                            d.buyerPrice == null
+                                ? null
+                                : 'order'
+                        ),
+
+
+                sellerPriceSource:
+
+                    date === today
+                        ? 'current-api'
+                        : (
+                            d.sellerPrice == null
+                                ? null
+                                : 'order'
+                        ),
+
+
+                sppSource:
+
+                    date === today
+                        ? 'calculated'
+                        : (
+                            d.spp == null
+                                ? null
+                                : 'order'
+                        )
+
+            };
+
+        }
+    );
         result.push({
 
             nmId,
