@@ -453,8 +453,7 @@ async function getPromotionStats(
         );
 
 
-    const campaignIds =
-        [];
+
 
 
     const groups =
