@@ -465,50 +465,69 @@ async function getPromotionStats(
             : [];
 
 
-    const uniqueIds =
-        new Set();
+    const threeDaysAgo =
+    Date.now() - 3 * 24 * 60 * 60 * 1000;
 
+const uniqueIds = new Set();
 
-    for (
-        const group of groups
-    ) {
+for (const group of groups) {
 
-        const list =
-            Array.isArray(
-                group?.advert_list
-            )
-                ? group.advert_list
-                : [];
+    const status =
+        Number(group?.status);
 
+    const list =
+        Array.isArray(group?.advert_list)
+            ? group.advert_list
+            : [];
 
-        for (
-            const advert of list
+    for (const advert of list) {
+
+        const advertId =
+            Number(advert?.advertId);
+
+        if (
+            !Number.isFinite(advertId) ||
+            advertId <= 0
         ) {
-
-            const advertId =
-                Number(
-                    advert?.advertId
-                );
-
-
-            if (
-                advertId > 0
-            ) {
-
-                uniqueIds.add(
-                    advertId
-                );
-
-            }
-
+            continue;
         }
 
+        // -----------------------------------------
+        // STATUS 9 — ВСЕГДА БЕРЁМ
+        // -----------------------------------------
+
+        if (status === 9) {
+
+            uniqueIds.add(advertId);
+
+            continue;
+        }
+
+        // -----------------------------------------
+        // ОСТАЛЬНЫЕ STATUS —
+        // ТОЛЬКО ИЗМЕНЁННЫЕ ЗА 3 ДНЯ
+        // -----------------------------------------
+
+        const changeTime =
+            advert?.changeTime
+                ? new Date(advert.changeTime).getTime()
+                : NaN;
+
+        if (
+            Number.isFinite(changeTime) &&
+            changeTime >= threeDaysAgo
+        ) {
+
+            uniqueIds.add(advertId);
+        }
     }
+}
+
+const campaignIds =
+    [...uniqueIds];
 
 
-    campaignIds.push(
-        ...uniqueIds
-    );
+
 
 
     console.log(
