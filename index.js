@@ -1,7 +1,6 @@
 require('dotenv').config();
 
 const express = require('express');
-const axios = require('axios');
 const AdmZip = require('adm-zip');
 const crypto = require('crypto');
 const path = require('path');
@@ -50,25 +49,6 @@ if (!MS_TOKEN) {
     );
 }
 
-const MS_API = MS_TOKEN
-    ? axios.create({
-        baseURL:
-            'https://api.moysklad.ru/api/remap/1.2',
-
-        timeout: 60000,
-
-        headers: {
-            Authorization:
-                `Bearer ${MS_TOKEN}`,
-
-            Accept:
-                'application/json;charset=utf-8',
-
-            'Content-Type':
-                'application/json'
-        }
-    })
-    : null;
 
 
 // ============================================================
@@ -1041,194 +1021,117 @@ async function getCurrentSellerPrices(
 // НЕ buyPrice.
 // ============================================================
 
-async function getMoySkladCosts(
-    products
-) {
-
+async function getMoySkladCosts(products) {
     const costs = {};
 
-
-    if (!MS_API) {
-
+    if (!MS_TOKEN) {
         console.warn(
             'MS_TOKEN не задан — себестоимость МойСклад недоступна'
         );
-
         return costs;
     }
 
-
-    const uniqueCodes =
-        [
-            ...new Set(
-                products
-                    .map(
-                        product =>
-                            String(
-                                product.article || ''
-                            ).trim()
-                    )
-                    .filter(Boolean)
+    const uniqueCodes = [...new Set(
+        products
+            .map(product =>
+                String(product.article || '').trim()
             )
-        ];
-
+            .filter(Boolean)
+    )];
 
     console.log('');
-    console.log(
-        '========================================'
-    );
+    console.log('========================================');
+    console.log('ПОЛУЧАЕМ СЕБЕСТОИМОСТЬ ИЗ МОЙСКЛАДА');
+    console.log(`Товаров: ${uniqueCodes.length}`);
+    console.log('========================================');
 
-    console.log(
-        'ПОЛУЧАЕМ СЕБЕСТОИМОСТЬ ИЗ МОЙСКЛАДА'
-    );
-
-    console.log(
-        `Кодов товаров: ${uniqueCodes.length}`
-    );
-
-    console.log(
-        '========================================'
-    );
-
-
-    for (
-        const code of uniqueCodes
-    ) {
-
+    for (const code of uniqueCodes) {
         try {
+            const url =
+                'https://api.moysklad.ru/api/remap/1.2/entity/product' +
+                `?filter=code=${encodeURIComponent(code)}` +
+                '&limit=1';
 
-            const response =
-                await MS_API.get(
-                    '/entity/product',
-                    {
-                        params: {
-                            filter:
-                                `code=${code}`,
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${MS_TOKEN}`,
+                    Accept: 'application/json;charset=utf-8'
+                },
+                signal: AbortSignal.timeout(60000)
+            });
 
-                            limit:
-                                1
-                        }
-                    }
+            const text = await response.text();
+
+            if (!response.ok) {
+                throw new Error(
+                    `МойСклад ${response.status}: ${text}`
                 );
+            }
 
+            const data = JSON.parse(text);
 
-            const rows =
-                response.data?.rows || [];
+            const rows = data?.rows || [];
 
-
-            if (
-                !rows.length
-            ) {
-
+            if (!rows.length) {
                 console.warn(
-                    `МойСклад: товар не найден по code=${code}`
+                    `МойСклад: товар не найден по коду ${code}`
                 );
-
                 continue;
             }
 
-
-            const msProduct =
-                rows[0];
-
+            const msProduct = rows[0];
 
             const salePrices =
-                Array.isArray(
-                    msProduct.salePrices
-                )
+                Array.isArray(msProduct.salePrices)
                     ? msProduct.salePrices
                     : [];
 
-
-            // ----------------------------------------------------
-            // СНАЧАЛА ИЩЕМ ПО ID
-            // ----------------------------------------------------
-
             let costPrice =
-                salePrices.find(
-                    price =>
-                        price?.priceType?.id ===
-                        MS_COST_PRICE_TYPE_ID
+                salePrices.find(price =>
+                    price?.priceType?.id ===
+                    MS_COST_PRICE_TYPE_ID
                 );
 
-
-            // ----------------------------------------------------
-            // ЕСЛИ ID НЕ НАШЛИ —
-            // ИЩЕМ ПО НАЗВАНИЮ
-            // ----------------------------------------------------
-
-            if (
-                !costPrice
-            ) {
-
+            if (!costPrice) {
                 costPrice =
-                    salePrices.find(
-                        price =>
-                            String(
-                                price?.priceType?.name || ''
-                            ).trim() ===
-                            'Себестоимость без НДС'
+                    salePrices.find(price =>
+                        String(
+                            price?.priceType?.name || ''
+                        ).trim() ===
+                        'Себестоимость без НДС'
                     );
             }
 
-
-            if (
-                costPrice?.value != null
-            ) {
-
-                // МойСклад хранит денежные значения
-                // в минимальных единицах.
-                //
-                // Поэтому:
-                //
-                // 4205 -> 42.05 ₽
-
+            if (costPrice?.value != null) {
                 const cost =
-                    Number(
-                        costPrice.value
-                    ) / 100;
+                    Number(costPrice.value) / 100;
 
-
-                if (
-                    Number.isFinite(
-                        cost
-                    )
-                ) {
-
-                    costs[code] =
-                        cost;
-
+                if (Number.isFinite(cost)) {
+                    costs[code] = cost;
 
                     console.log(
                         `МойСклад ${code}: ${cost} ₽`
                     );
                 }
-
             } else {
-
                 console.warn(
                     `МойСклад: у ${code} нет цены «Себестоимость без НДС»`
                 );
             }
 
-
         } catch (error) {
-
             console.error(
                 `МойСклад ${code} ERROR:`,
-                error.response?.data ||
                 error.message
             );
         }
     }
 
-
     console.log(
-        `Себестоимость получена: ${
-            Object.keys(costs).length
-        }/${uniqueCodes.length}`
+        `Себестоимость получена: ` +
+        `${Object.keys(costs).length}/${uniqueCodes.length}`
     );
-
 
     return costs;
 }
