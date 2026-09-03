@@ -423,7 +423,9 @@ tbody tr:hover td {
     font-weight: 700;
 }
 
-
+.cost {
+    font-weight: 700;
+}
 .empty {
 
     color: #a3a8b0;
@@ -1102,7 +1104,9 @@ function render(data) {
 
                 Позиция
 
-            </th>
+            </th><th rowspan="2">
+    Себестоимость
+</th>
 
         </tr>
 
@@ -1419,6 +1423,12 @@ function render(data) {
     <td class="position">
         ${formatNumber(product.positionToday, 1)}
     </td>
+
+    <td class="cost">
+    ${formatMoney(
+        product.cost
+    )}
+</td>
 
 </tr>
 
