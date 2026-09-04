@@ -2785,62 +2785,23 @@ async function getMoySkladCosts(
 // ============================================================
 // ФИНАНСОВЫЕ ДАННЫЕ ПО ДНЯМ
 //
+// Источник:
+// statistics-api.wildberries.ru
+// /api/v5/supplier/reportDetailByPeriod
+//
 // Один запрос за весь период.
-// Все товары сразу.
-//
-// Основа — именно твой рабочий
-// /wb/profit-report-preview
-//
-// result[nmId][date] = {
-//
-//     retailSales,
-//     quantity,
-//     forPay,
-//     logistics,
-//     commission
-//
-// }
-// ============================================================
-
-// ============================================================
-// ФИНАНСЫ ПО ДНЯМ
-//
-// Основа — рабочий seller-price-history-year:
-//
-// POST
-// https://finance-api.wildberries.ru/api/finance/v1/sales-reports/detailed
-//
-// period: weekly
-// limit: 100000
-// rrdId: пагинация
-//
-// Получаем ВСЕ строки за период один раз,
-// затем локально раскладываем:
-//
-// result[nmId][date]
-//
-// ============================================================
-
-// ============================================================
-// ФИНАНСОВЫЕ ДАННЫЕ ПО ДНЯМ
-// ============================================================
-
-// ============================================================
-// ФИНАНСЫ ПО ДНЯМ
-//
-// 1 РАЗ ПОЛУЧАЕМ ФИНАНСОВЫЙ ОТЧЁТ.
-// Можно запросить неделю.
-// После этого локально берём только нужные даты.
+// После получения report API больше не вызываем.
 //
 // Результат:
 //
-// result[nmId][date] = {
-//     forPay,
-//     logistics,
-//     retailPrice
+// dailyFinancials[nmId][date] = {
+//
+//     forPay:       К перечислению,
+//     logistics:    Логистика,
+//     retailPrice:  Цена розничная
+//
 // }
 //
-// НИКАКИХ ДОПОЛНИТЕЛЬНЫХ ЗАПРОСОВ ПО ТОВАРАМ.
 // ============================================================
 
 async function getDailyFinancials(
@@ -2853,13 +2814,13 @@ async function getDailyFinancials(
         '========================================'
     );
     console.log(
-        'ФИНАНСОВЫЙ ОТЧЁТ WB'
+        'ПОЛУЧАЕМ ФИНАНСОВЫЙ ОТЧЁТ WB'
     );
     console.log(
         `${dateFrom} -> ${dateTo}`
     );
     console.log(
-        'ОДИН ОТЧЁТ ДЛЯ ВСЕХ ТОВАРОВ'
+        'ОДИН ЗАПРОС ДЛЯ ВСЕХ ТОВАРОВ'
     );
     console.log(
         '========================================'
@@ -2867,237 +2828,182 @@ async function getDailyFinancials(
 
 
     // ========================================================
-    // Загружаем весь отчёт
+    // 1. ОДИН ЗАПРОС ПОЛНОГО ФИНАНСОВОГО ОТЧЁТА
+    //
+    // Точно по рабочей схеме.
+    // Без fields.
     // ========================================================
 
-    let allRows = [];
+    const url =
+        'https://statistics-api.wildberries.ru/api/v5/' +
+        'supplier/reportDetailByPeriod' +
+        `?dateFrom=${dateFrom}` +
+        `&dateTo=${dateTo}`;
 
-    let rrdId = 0;
 
-    let page = 0;
-
-
-    while (true) {
-
-        page++;
-
-
-        console.log('');
-        console.log(
-            `FINANCE PAGE ${page} | rrdId=${rrdId}`
-        );
-
-
-        const rows =
-            await wbPost(
-
-                'https://finance-api.wildberries.ru/api/finance/v1/sales-reports/detailed',
-
-                {
-                    dateFrom:
-                        dateFrom,
-
-                    dateTo:
-                        dateTo,
-
-                    period:
-                        'weekly',
-
-                    limit:
-                        100000,
-
-                    rrdId:
-                        rrdId,
-
-                    fields: [
-
-                        'rrdId',
-
-                        'nmId',
-
-                        'vendorCode',
-
-                        'title',
-
-                        'sku',
-
-                        'orderDt',
-
-                        'saleDt',
-
-                        'quantity',
-
-                        'retailPriceWithDisc',
-
-                        'retailPrice',
-
-                        'forPay',
-
-                        'deliveryRub',
-
-                        'supplierOperName'
-                    ]
-                }
-
-            );
-
-
-        // ====================================================
-        // Больше строк нет
-        // ====================================================
-
-        if (
-            !Array.isArray(rows) ||
-            rows.length === 0
-        ) {
-
-            console.log(
-                'WB FINANCE: больше данных нет.'
-            );
-
-            break;
-
-        }
-
-
-        console.log(
-            `Получено строк: ${rows.length}`
-        );
-
-
-        allRows.push(
-            ...rows
-        );
-
-
-        console.log(
-            `Всего накоплено: ${allRows.length}`
-        );
-
-
-        // ====================================================
-        // Максимальный rrdId
-        // ====================================================
-
-        let maxRrdId =
-            rrdId;
-
-
-        for (
-            const row of rows
-        ) {
-
-            const currentRrdId =
-                Number(
-                    row.rrdId ??
-                    row.rrd_id ??
-                    0
-                );
-
-
-            if (
-                currentRrdId >
-                maxRrdId
-            ) {
-
-                maxRrdId =
-                    currentRrdId;
-
-            }
-
-        }
-
-
-        // ====================================================
-        // Защита от бесконечного цикла
-        // ====================================================
-
-        if (
-            maxRrdId <= rrdId
-        ) {
-
-            console.log(
-                'rrdId не изменился.'
-            );
-
-            break;
-
-        }
-
-
-        rrdId =
-            maxRrdId;
-
-
-        // ====================================================
-        // Последняя страница
-        // ====================================================
-
-        if (
-            rows.length < 100000
-        ) {
-
-            console.log(
-                'Последняя страница.'
-            );
-
-            break;
-
-        }
-
-    }
-
-
-    // ========================================================
-    // Если данных нет
-    // ========================================================
-
-    if (
-        allRows.length === 0
-    ) {
-
-        console.log(
-            'WB FINANCE: данных нет.'
-        );
-
-        return {};
-
-    }
-
-
-    console.log('');
     console.log(
-        `ВСЕГО СТРОК FINANCE: ${allRows.length}`
+        'FINANCE URL:',
+        url
+    );
+
+
+    const response =
+        await fetch(
+            url,
+            {
+                method:
+                    'GET',
+
+                headers: {
+                    Authorization:
+                        WB_TOKEN
+                },
+
+                signal:
+                    AbortSignal.timeout(
+                        60000
+                    )
+            }
+        );
+
+
+    console.log(
+        'FINANCE HTTP:',
+        response.status
     );
 
 
     // ========================================================
-    // РЕЗУЛЬТАТ
+    // 2. 204
+    //
+    // WB не дал финансовых данных.
+    // Ничего больше не запрашиваем.
+    // ========================================================
+
+    if (
+        response.status === 204
+    ) {
+
+        console.log(
+            'WB FINANCE: 204 — данных нет.'
+        );
+
+        return {};
+    }
+
+
+    // ========================================================
+    // 3. ОШИБКА
+    // ========================================================
+
+    if (
+        !response.ok
+    ) {
+
+        const errorText =
+            await response.text();
+
+
+        throw new Error(
+            `WB FINANCE ${response.status}: ${errorText}`
+        );
+    }
+
+
+    // ========================================================
+    // 4. ПОЛУЧАЕМ REPORT
+    // ========================================================
+
+    const report =
+        await response.json();
+
+
+    if (
+        !Array.isArray(report)
+    ) {
+
+        throw new Error(
+            'WB FINANCE: ответ не является массивом'
+        );
+    }
+
+
+    console.log(
+        'Строк финансового отчёта:',
+        report.length
+    );
+
+
+    if (
+        report.length === 0
+    ) {
+
+        return {};
+    }
+
+
+    // ========================================================
+    // 5. ГРУППИРОВКА
+    //
+    // ВСЯ ДАЛЬНЕЙШАЯ РАБОТА — ТОЛЬКО С report.
+    //
+    // НИКАКИХ НОВЫХ API-ЗАПРОСОВ.
     // ========================================================
 
     const result = {};
 
 
-    // ========================================================
-    // НОРМАЛИЗАЦИЯ ДАТЫ
-    // ========================================================
-
-    function normalizeDate(
-        value
+    for (
+        const row of report
     ) {
 
+        // ====================================================
+        // NM ID
+        // ====================================================
+
+        const nmId =
+            Number(
+                row.nm_id ||
+                0
+            );
+
+
         if (
-            !value
+            !nmId
         ) {
 
-            return null;
+            continue;
+        }
 
+
+        // ====================================================
+        // ДАТА
+        //
+        // В тесте WB поле date приходит например:
+        //
+        // 2026-08-24T01:12:49Z
+        //
+        // Для Dashboard берём календарную дату строки.
+        // ====================================================
+
+        const rawDate =
+            row.date ||
+            row.sale_dt ||
+            row.order_dt ||
+            '';
+
+
+        if (
+            !rawDate
+        ) {
+
+            continue;
         }
 
 
         const date =
             String(
-                value
+                rawDate
             ).slice(
                 0,
                 10
@@ -3105,68 +3011,18 @@ async function getDailyFinancials(
 
 
         if (
-            /^\d{4}-\d{2}-\d{2}$/.test(
+            !/^\d{4}-\d{2}-\d{2}$/.test(
                 date
             )
         ) {
 
-            return date;
-
-        }
-
-
-        return null;
-
-    }
-
-
-    // ========================================================
-    // ЛОКАЛЬНАЯ ОБРАБОТКА
-    //
-    // API БОЛЬШЕ НЕ ВЫЗЫВАЕМ
-    // ========================================================
-
-    for (
-        const row of allRows
-    ) {
-
-        const nmId =
-            Number(
-                row.nmId ??
-                row.nm_id ??
-                0
-            );
-
-
-        if (
-            !Number.isFinite(nmId) ||
-            nmId <= 0
-        ) {
-
             continue;
-
         }
 
 
-        const date =
-            normalizeDate(
-
-                row.saleDt ??
-                row.sale_dt ??
-                row.orderDt ??
-                row.order_dt
-
-            );
-
-
-        if (
-            !date
-        ) {
-
-            continue;
-
-        }
-
+        // ====================================================
+        // ОГРАНИЧЕНИЕ ПЕРИОДА
+        // ====================================================
 
         if (
             date < dateFrom ||
@@ -3174,12 +3030,11 @@ async function getDailyFinancials(
         ) {
 
             continue;
-
         }
 
 
         // ====================================================
-        // Создаём товар
+        // СОЗДАЁМ ТОВАР
         // ====================================================
 
         if (
@@ -3187,12 +3042,11 @@ async function getDailyFinancials(
         ) {
 
             result[nmId] = {};
-
         }
 
 
         // ====================================================
-        // Создаём день
+        // СОЗДАЁМ ДЕНЬ
         // ====================================================
 
         if (
@@ -3209,9 +3063,7 @@ async function getDailyFinancials(
 
                 retailPrice:
                     0
-
             };
-
         }
 
 
@@ -3225,71 +3077,72 @@ async function getDailyFinancials(
 
         const operation =
             String(
-                row.supplierOperName ??
-                row.supplier_oper_name ??
-                row.docTypeName ??
-                row.doc_type_name ??
+                row.supplier_oper_name ||
                 ''
-            );
+            ).trim();
 
 
         // ====================================================
         // ПРОДАЖА
+        //
+        // К перечислению:
+        // ppvz_for_pay
+        //
+        // Цена розничная:
+        // retail_price × quantity
         // ====================================================
 
         if (
-            operation === 'Продажа'
+            operation ===
+            'Продажа'
         ) {
 
             item.forPay +=
                 Number(
-                    row.forPay ??
-                    row.ppvz_for_pay ??
+                    row.ppvz_for_pay ||
                     0
                 );
 
 
             item.retailPrice +=
                 Number(
-                    row.retailPrice ??
-                    row.retail_price ??
+                    row.retail_price ||
                     0
                 ) *
                 Number(
-                    row.quantity ??
+                    row.quantity ||
                     0
                 );
-
         }
 
 
         // ====================================================
         // ВОЗВРАТ
+        //
+        // Вычитаем из итогов.
         // ====================================================
 
         if (
-            operation === 'Возврат'
+            operation ===
+            'Возврат'
         ) {
 
             item.forPay -=
                 Number(
-                    row.forPay ??
-                    row.ppvz_for_pay ??
+                    row.ppvz_for_pay ||
                     0
                 );
 
 
             item.retailPrice -=
                 Number(
-                    row.retailPrice ??
-                    row.retail_price ??
+                    row.retail_price ||
                     0
                 ) *
                 Number(
-                    row.quantity ??
+                    row.quantity ||
                     0
                 );
-
         }
 
 
@@ -3298,28 +3151,29 @@ async function getDailyFinancials(
         // ====================================================
 
         if (
-            operation === 'Логистика'
+            operation ===
+            'Логистика'
         ) {
 
             item.logistics +=
                 Number(
-                    row.deliveryRub ??
-                    row.delivery_rub ??
+                    row.delivery_rub ||
                     0
                 );
-
         }
 
     }
 
 
     // ========================================================
-    // ОКРУГЛЕНИЕ
+    // 6. ОКРУГЛЕНИЕ
     // ========================================================
 
     for (
         const nmId of
-        Object.keys(result)
+        Object.keys(
+            result
+        )
     ) {
 
         for (
@@ -3351,13 +3205,29 @@ async function getDailyFinancials(
                 );
 
         }
-
     }
 
 
     // ========================================================
-    // КОНТРОЛЬНЫЕ ЛОГИ
+    // 7. КОНТРОЛЬНЫЙ ЛОГ
     // ========================================================
+
+    let linkCount = 0;
+
+
+    for (
+        const nmId of
+        Object.keys(
+            result
+        )
+    ) {
+
+        linkCount +=
+            Object.keys(
+                result[nmId]
+            ).length;
+    }
+
 
     console.log('');
     console.log(
@@ -3377,19 +3247,7 @@ async function getDailyFinancials(
 
     console.log(
         'Связок nmId × день:',
-        Object.values(
-            result
-        ).reduce(
-            (
-                sum,
-                dates
-            ) =>
-                sum +
-                Object.keys(
-                    dates
-                ).length,
-            0
-        )
+        linkCount
     );
 
     console.log(
