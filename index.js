@@ -2033,76 +2033,139 @@ async function getMoySkladCosts(products) {
     const uniqueCodes = [
         ...new Set(
             products
-                .map(product => String(product.article || '').trim())
+                .map(product =>
+                    String(product.article || '').trim()
+                )
                 .filter(Boolean)
         )
     ];
 
     console.log(
-        `MoySklad: ищем себестоимость для ${uniqueCodes.length} артикулов`
+        `МойСклад: ищем себестоимость для ${uniqueCodes.length} артикулов`
     );
 
     for (const code of uniqueCodes) {
-        try {
-            console.log(`Ищу товар: ${code}`);
 
-            const productResponse = await api.get('/entity/product', {
-                params: {
-                    filter: `code=${code}`,
-                    limit: 1
-                }
+        try {
+
+            console.log(
+                `МойСклад: ищу товар по code: ${code}`
+            );
+
+            const url =
+                'https://api.moysklad.ru/api/remap/1.2/entity/product' +
+                `?filter=code=${encodeURIComponent(code)}` +
+                '&limit=1';
+
+            const response = await fetch(url, {
+                method: 'GET',
+
+                headers: {
+                    'Authorization': `Bearer ${MS_TOKEN}`,
+                    'Accept': 'application/json'
+                },
+
+                signal: AbortSignal.timeout(60000)
             });
 
-            const productsMS = productResponse.data.rows || [];
+            const text = await response.text();
 
-            if (!productsMS.length) {
-                console.log(`МойСклад: товар не найден: ${code}`);
+            if (!response.ok) {
+
+                console.error(
+                    `МойСклад ${code}: HTTP ${response.status}`,
+                    text.slice(0, 500)
+                );
+
+                result[code] = null;
+
                 continue;
             }
 
-            const productMS = productsMS[0];
+            const data = JSON.parse(text);
+
+            const rows =
+                Array.isArray(data?.rows)
+                    ? data.rows
+                    : [];
+
+            if (!rows.length) {
+
+                console.log(
+                    `МойСклад: товар не найден: ${code}`
+                );
+
+                result[code] = null;
+
+                continue;
+            }
+
+            const msProduct = rows[0];
 
             let cost = null;
 
-            for (const price of productMS.salePrices || []) {
+            for (
+                const price of msProduct.salePrices || []
+            ) {
+
                 const priceTypeId =
                     price?.priceType?.id || '';
 
-                const priceTypeName = String(
-                    price?.priceType?.name ||
-                    price?.priceType ||
-                    ''
-                ).trim();
+                const priceTypeName =
+                    String(
+                        price?.priceType?.name ||
+                        price?.priceType ||
+                        ''
+                    ).trim();
 
                 if (
                     priceTypeId === MS_COST_PRICE_TYPE_ID ||
                     priceTypeName === 'Себестоимость без НДС'
                 ) {
-                    if (price?.value != null) {
-                        cost = Number(price.value) / 100;
+
+                    if (
+                        price?.value != null &&
+                        Number.isFinite(
+                            Number(price.value)
+                        )
+                    ) {
+
+                        cost =
+                            Number(price.value) / 100;
                     }
 
                     break;
                 }
             }
 
-            if (cost !== null && Number.isFinite(cost)) {
+            if (
+                cost != null &&
+                Number.isFinite(cost)
+            ) {
+
                 result[code] = cost;
 
                 console.log(
-                    `МойСклад: ${code} → себестоимость ${cost}`
+                    `МойСклад: ${code} → ${cost} ₽`
                 );
+
             } else {
+
+                result[code] = null;
+
                 console.log(
                     `МойСклад: ${code} → себестоимость не найдена`
                 );
             }
 
         } catch (error) {
+
             console.error(
-                `MoySklad error for ${code}:`,
-                error.response?.data || error.message
+                `МойСклад: ошибка для ${code}:`,
+                error.message
             );
+
+            result[code] = null;
         }
     }
 
