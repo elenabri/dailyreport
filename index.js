@@ -2597,7 +2597,7 @@ last3.map(
         };
 
     }
-);
+
     const article =
     String(
         product.article || ''
