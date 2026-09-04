@@ -2801,6 +2801,25 @@ async function getMoySkladCosts(
 // но в таблице финансовые показатели сегодня = —
 // ============================================================
 
+// ============================================================
+// ФИНАНСОВЫЕ ДАННЫЕ ПО КАЖДОМУ ДНЮ
+//
+// Источник:
+// reportDetailByPeriod
+//
+// Результат:
+//
+// dailyFinancials[nmId][date] = {
+//     forPay,
+//     logistics,
+//     retailSales,
+//     quantity
+// }
+//
+// При 429 ждём время, которое сообщил WB:
+// X-RateLimit-Retry
+// ============================================================
+
 async function getDailyFinancials(
     dateFrom,
     dateTo
@@ -2820,57 +2839,161 @@ async function getDailyFinancials(
         '========================================'
     );
 
+
     const url =
         'https://statistics-api.wildberries.ru/api/v5/supplier/reportDetailByPeriod' +
-        `?dateFrom=${dateFrom}` +
-        `&dateTo=${dateTo}`;
+        `?dateFrom=${encodeURIComponent(dateFrom)}` +
+        `&dateTo=${encodeURIComponent(dateTo)}`;
 
-    const response =
-        await fetch(
-            url,
-            {
-                headers: {
-                    Authorization:
-                        WB_TOKEN
-                },
 
-                signal:
-                    AbortSignal.timeout(
-                        60000
-                    )
-            }
+    let report = null;
+
+
+    // ========================================================
+    // ЗАПРОС С RETRY ПРИ 429
+    // ========================================================
+
+    for (
+        let attempt = 1;
+        attempt <= 5;
+        attempt++
+    ) {
+
+        console.log(
+            `WB FINANCE GET ${attempt}/5`
         );
 
-    const text =
-        await response.text();
 
-    if (!response.ok) {
+        const response =
+            await fetch(
+                url,
+                {
+                    method:
+                        'GET',
 
-        throw new Error(
-            `WB FINANCE ${response.status}: ${text}`
-        );
+                    headers: {
+                        Authorization:
+                            WB_TOKEN,
 
-    }
+                        Accept:
+                            'application/json'
+                    },
 
-    let report;
-
-    try {
-
-        report =
-            JSON.parse(
-                text
+                    signal:
+                        AbortSignal.timeout(
+                            60000
+                        )
+                }
             );
 
-    } catch {
 
-        throw new Error(
-            `WB FINANCE вернул не JSON: ${text.slice(0, 1000)}`
-        );
+        const text =
+            await response.text();
+
+
+        // ====================================================
+        // 429
+        // ====================================================
+
+        if (
+            response.status === 429
+        ) {
+
+            if (
+                attempt >= 5
+            ) {
+
+                throw new Error(
+                    `WB FINANCE 429 после 5 попыток: ${text}`
+                );
+
+            }
+
+
+            let retryAfter =
+                Number(
+                    response.headers.get(
+                        'X-RateLimit-Retry'
+                    )
+                );
+
+
+            if (
+                !Number.isFinite(
+                    retryAfter
+                ) ||
+                retryAfter < 1
+            ) {
+
+                retryAfter =
+                    60;
+
+            }
+
+
+            console.log(
+                `WB FINANCE 429. Ждём ${retryAfter} сек.`
+            );
+
+
+            await sleep(
+                retryAfter *
+                1000
+            );
+
+
+            continue;
+        }
+
+
+        // ====================================================
+        // ДРУГАЯ ОШИБКА
+        // ====================================================
+
+        if (
+            !response.ok
+        ) {
+
+            throw new Error(
+                `WB FINANCE ${response.status}: ${text}`
+            );
+
+        }
+
+
+        // ====================================================
+        // JSON
+        // ====================================================
+
+        try {
+
+            report =
+                JSON.parse(
+                    text
+                );
+
+        } catch {
+
+            throw new Error(
+                `WB FINANCE вернул не JSON: ${text.slice(0, 1000)}`
+            );
+
+        }
+
+
+        break;
 
     }
 
+
+    // ========================================================
+    // ПРОВЕРКА
+    // ========================================================
+
     if (
-        !Array.isArray(report)
+        !Array.isArray(
+            report
+        )
     ) {
 
         throw new Error(
@@ -2879,7 +3002,13 @@ async function getDailyFinancials(
 
     }
 
+
+    // ========================================================
+    // ГРУППИРОВКА nmId × дата
+    // ========================================================
+
     const result = {};
+
 
     for (
         const row of report
@@ -2890,14 +3019,18 @@ async function getDailyFinancials(
                 row.nm_id
             );
 
+
         if (
-            !Number.isFinite(nmId) ||
+            !Number.isFinite(
+                nmId
+            ) ||
             nmId <= 0
         ) {
 
             continue;
 
         }
+
 
         const date =
             String(
@@ -2909,11 +3042,13 @@ async function getDailyFinancials(
                 10
             );
 
+
         if (!date) {
 
             continue;
 
         }
+
 
         if (
             !result[nmId]
@@ -2923,6 +3058,7 @@ async function getDailyFinancials(
                 {};
 
         }
+
 
         if (
             !result[nmId][date]
@@ -2946,8 +3082,10 @@ async function getDailyFinancials(
 
         }
 
+
         const item =
             result[nmId][date];
+
 
         // ====================================================
         // ПРОДАЖА
@@ -2964,11 +3102,13 @@ async function getDailyFinancials(
                     0
                 );
 
+
             item.retailSales +=
                 Number(
                     row.retail_price_withdisc_rub ||
                     0
                 );
+
 
             item.quantity +=
                 Number(
@@ -2977,6 +3117,7 @@ async function getDailyFinancials(
                 );
 
         }
+
 
         // ====================================================
         // ВОЗВРАТ
@@ -2993,11 +3134,13 @@ async function getDailyFinancials(
                     0
                 );
 
+
             item.retailSales -=
                 Number(
                     row.retail_price_withdisc_rub ||
                     0
                 );
+
 
             item.quantity -=
                 Number(
@@ -3006,6 +3149,7 @@ async function getDailyFinancials(
                 );
 
         }
+
 
         // ====================================================
         // ЛОГИСТИКА
@@ -3018,6 +3162,11 @@ async function getDailyFinancials(
             );
 
     }
+
+
+    // ========================================================
+    // ОКРУГЛЕНИЕ
+    // ========================================================
 
     for (
         const nmId of
@@ -3034,20 +3183,24 @@ async function getDailyFinancials(
             const item =
                 result[nmId][date];
 
+
             item.forPay =
                 Number(
                     item.forPay.toFixed(2)
                 );
+
 
             item.logistics =
                 Number(
                     item.logistics.toFixed(2)
                 );
 
+
             item.retailSales =
                 Number(
                     item.retailSales.toFixed(2)
                 );
+
 
             item.quantity =
                 Number(
@@ -3057,6 +3210,7 @@ async function getDailyFinancials(
         }
 
     }
+
 
     console.log(
         'Финансовых связок nmId × день:',
@@ -3074,9 +3228,9 @@ async function getDailyFinancials(
             )
     );
 
+
     return result;
 }
-
 // ============================================================
 // ХРАНЕНИЕ ПО КАЖДОМУ ДНЮ
 //
