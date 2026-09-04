@@ -2785,12 +2785,11 @@ async function getMoySkladCosts(
 // ============================================================
 // ФИНАНСОВЫЕ ДАННЫЕ ПО ДНЯМ
 //
-// Основа — именно рабочий /wb/profit-report-preview
+// Один запрос за весь период.
+// Все товары сразу.
 //
-// Один запрос:
-// dateFrom -> dateTo
-//
-// После получения отчёта всё группируется ЛОКАЛЬНО:
+// Основа — именно твой рабочий
+// /wb/profit-report-preview
 //
 // result[nmId][date] = {
 //
@@ -2801,25 +2800,6 @@ async function getMoySkladCosts(
 //     commission
 //
 // }
-//
-// ВАЖНО:
-//
-// Продажа:
-//     + retail_amount
-//     + quantity
-//     + ppvz_for_pay
-//     + ppvz_reward
-//
-// Возврат:
-//     - retail_amount
-//     - quantity
-//     - ppvz_for_pay
-//     - ppvz_reward
-//
-// Логистика:
-//     supplier_oper_name === 'Логистика'
-//     + delivery_rub
-//
 // ============================================================
 
 async function getDailyFinancials(
@@ -2851,18 +2831,23 @@ async function getDailyFinancials(
         `&dateTo=${encodeURIComponent(dateTo)}`;
 
 
+    console.log(
+        'FINANCE URL:',
+        url
+    );
+
+
     // ========================================================
     // ЗАПРОС
-    //
-    // Здесь НЕ используем wbGet(),
-    // чтобы полностью повторить рабочую логику
-    // /wb/profit-report-preview.
     // ========================================================
 
     const response =
         await fetch(
             url,
             {
+                method:
+                    'GET',
+
                 headers: {
                     Authorization:
                         WB_TOKEN
@@ -2876,32 +2861,123 @@ async function getDailyFinancials(
         );
 
 
+    console.log(
+        'FINANCE RESPONSE:',
+        response.status
+    );
+
+
+    // ========================================================
+    // СНАЧАЛА ЧИТАЕМ TEXT
+    //
+    // НЕ вызываем сразу response.json()
+    // ========================================================
+
+    const text =
+        await response.text();
+
+
+    console.log(
+        'FINANCE RESPONSE LENGTH:',
+        text.length
+    );
+
+
+    // ========================================================
+    // HTTP ERROR
+    // ========================================================
+
     if (
         !response.ok
     ) {
 
-        const errorText =
-            await response.text();
-
-
         throw new Error(
-            `WB FINANCE ${response.status}: ${errorText}`
+            `WB FINANCE ${response.status}: ${
+                text.slice(
+                    0,
+                    2000
+                )
+            }`
         );
 
     }
 
 
-    const report =
-        await response.json();
-
+    // ========================================================
+    // ПУСТОЙ ОТВЕТ
+    //
+    // Это не ошибка JSON.
+    // Просто данных нет.
+    // ========================================================
 
     if (
-        !Array.isArray(report)
+        !text.trim()
     ) {
 
-        throw new Error(
-            'WB FINANCE: ответ не является массивом'
+        console.log(
+            'WB FINANCE: пустой ответ'
         );
+
+
+        return {};
+
+    }
+
+
+    // ========================================================
+    // JSON
+    // ========================================================
+
+    let report;
+
+
+    try {
+
+        report =
+            JSON.parse(
+                text
+            );
+
+    } catch (error) {
+
+        console.error(
+            'WB FINANCE: не удалось разобрать JSON'
+        );
+
+
+        console.error(
+            'Ответ WB:',
+            text.slice(
+                0,
+                2000
+            )
+        );
+
+
+        throw new Error(
+            'WB FINANCE вернул некорректный JSON'
+        );
+
+    }
+
+
+    // ========================================================
+    // МАССИВ
+    // ========================================================
+
+    if (
+        !Array.isArray(
+            report
+        )
+    ) {
+
+        console.log(
+            'WB FINANCE: ответ не массив:',
+            report
+        );
+
+
+        return {};
 
     }
 
@@ -2913,7 +2989,7 @@ async function getDailyFinancials(
 
 
     // ========================================================
-    // nmId -> date -> данные
+    // nmId -> date
     // ========================================================
 
     const result = {};
@@ -2930,7 +3006,9 @@ async function getDailyFinancials(
 
 
         if (
-            !Number.isFinite(nmId) ||
+            !Number.isFinite(
+                nmId
+            ) ||
             nmId <= 0
         ) {
 
@@ -2941,8 +3019,6 @@ async function getDailyFinancials(
 
         // ====================================================
         // ДАТА
-        //
-        // В этом же отчёте используем row.date.
         // ====================================================
 
         const date =
@@ -2970,7 +3046,8 @@ async function getDailyFinancials(
             !result[nmId]
         ) {
 
-            result[nmId] = {};
+            result[nmId] =
+                {};
 
         }
 
@@ -3090,7 +3167,10 @@ async function getDailyFinancials(
         // ====================================================
         // ЛОГИСТИКА
         //
-        // ИМЕННО ТАК, КАК В ТВОЁМ РАБОЧЕМ ОТЧЁТЕ
+        // Именно как в твоём рабочем отчёте:
+        //
+        // supplier_oper_name === 'Логистика'
+        // delivery_rub
         // ====================================================
 
         if (
@@ -3115,7 +3195,9 @@ async function getDailyFinancials(
 
     for (
         const nmId of
-        Object.keys(result)
+        Object.keys(
+            result
+        )
     ) {
 
         for (
@@ -3165,7 +3247,9 @@ async function getDailyFinancials(
 
     console.log(
         'Финансовых связок nmId × день:',
-        Object.values(result)
+        Object.values(
+            result
+        )
             .reduce(
                 (
                     sum,
@@ -3181,7 +3265,6 @@ async function getDailyFinancials(
 
 
     return result;
-
 }
 
 
