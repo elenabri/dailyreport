@@ -2832,258 +2832,425 @@ async function getDailyFinancials(
         `&dateTo=${encodeURIComponent(dateTo)}`;
 
 
+    let response;
+
+
     // ========================================================
-    // ОДИН ЗАПРОС
+    // ЗАПРОС
     //
-    // wbGet уже умеет:
-    // - retry
-    // - 429
-    // - X-RateLimit-Retry
-    // ========================================================
-
-    const report =
-        await wbGet(
-            url
-        );
-
-
-    if (
-        !Array.isArray(report)
-    ) {
-
-        throw new Error(
-            'WB FINANCE: ожидался массив'
-        );
-
-    }
-
-
-    const result = {};
-
-
-    // ========================================================
-    // РАЗБИРАЕМ ОТЧЁТ ЛОКАЛЬНО
+    // При 429 ждём X-RateLimit-Retry.
     // ========================================================
 
     for (
-        const row of report
+        let attempt = 1;
+        attempt <= 5;
+        attempt++
     ) {
 
-        const nmId =
-            Number(
-                row.nm_id
+        console.log(
+            `WB FINANCE ${attempt}/5`
+        );
+
+
+        response =
+            await fetch(
+                url,
+                {
+                    method:
+                        'GET',
+
+                    headers: {
+
+                        Authorization:
+                            WB_TOKEN,
+
+                        Accept:
+                            'application/json'
+
+                    },
+
+                    signal:
+                        AbortSignal.timeout(
+                            60000
+                        )
+                }
             );
 
 
+        const text =
+            await response.text();
+
+
+        // ====================================================
+        // 429
+        // ====================================================
+
         if (
-            !Number.isFinite(
-                nmId
-            ) ||
-            nmId <= 0
+            response.status === 429
         ) {
+
+            if (
+                attempt >= 5
+            ) {
+
+                throw new Error(
+                    `WB FINANCE 429 после 5 попыток: ${text}`
+                );
+
+            }
+
+
+            let retryAfter =
+                Number(
+                    response.headers.get(
+                        'X-RateLimit-Retry'
+                    )
+                );
+
+
+            if (
+                !Number.isFinite(
+                    retryAfter
+                ) ||
+                retryAfter < 1
+            ) {
+
+                retryAfter =
+                    60;
+
+            }
+
+
+            console.log(
+                `WB FINANCE 429. Ждём ${retryAfter} сек.`
+            );
+
+
+            await sleep(
+                retryAfter * 1000
+            );
+
 
             continue;
+        }
+
+
+        // ====================================================
+        // ДРУГАЯ HTTP ОШИБКА
+        // ====================================================
+
+        if (
+            !response.ok
+        ) {
+
+            throw new Error(
+                `WB FINANCE ${response.status}: ${text.slice(0, 2000)}`
+            );
 
         }
 
 
-        const date =
-            String(
-                row.date ||
-                row.moment ||
-                ''
-            ).slice(
-                0,
-                10
+        // ====================================================
+        // JSON
+        // ====================================================
+
+        let report;
+
+
+        try {
+
+            report =
+                JSON.parse(
+                    text
+                );
+
+        } catch {
+
+            console.error(
+                'WB FINANCE: ответ не JSON:'
             );
 
 
-        if (!date) {
-
-            continue;
-
-        }
-
-
-        if (
-            !result[nmId]
-        ) {
-
-            result[nmId] = {};
-
-        }
-
-
-        if (
-            !result[nmId][date]
-        ) {
-
-            result[nmId][date] = {
-
-                forPay:
+            console.error(
+                text.slice(
                     0,
-
-                logistics:
-                    0,
-
-                retailSales:
-                    0,
-
-                quantity:
-                    0
-
-            };
-
-        }
-
-
-        const item =
-            result[nmId][date];
-
-
-        // ====================================================
-        // ПРОДАЖА
-        // ====================================================
-
-        if (
-            row.supplier_oper_name ===
-            'Продажа'
-        ) {
-
-            item.forPay +=
-                Number(
-                    row.ppvz_for_pay ||
-                    0
-                );
-
-
-            item.retailSales +=
-                Number(
-                    row.retail_price_withdisc_rub ||
-                    0
-                );
-
-
-            item.quantity +=
-                Number(
-                    row.quantity ||
-                    0
-                );
-
-        }
-
-
-        // ====================================================
-        // ВОЗВРАТ
-        // ====================================================
-
-        if (
-            row.supplier_oper_name ===
-            'Возврат'
-        ) {
-
-            item.forPay -=
-                Number(
-                    row.ppvz_for_pay ||
-                    0
-                );
-
-
-            item.retailSales -=
-                Number(
-                    row.retail_price_withdisc_rub ||
-                    0
-                );
-
-
-            item.quantity -=
-                Number(
-                    row.quantity ||
-                    0
-                );
-
-        }
-
-
-        // ====================================================
-        // ЛОГИСТИКА
-        // ====================================================
-
-        item.logistics +=
-            Number(
-                row.rebill_logistic_cost ||
-                0
+                    2000
+                )
             );
 
-    }
+
+            throw new Error(
+                'WB FINANCE вернул не JSON'
+            );
+
+        }
 
 
-    // ========================================================
-    // ОКРУГЛЕНИЕ
-    // ========================================================
+        // ====================================================
+        // ПРОВЕРКА
+        // ====================================================
 
-    for (
-        const nmId of
-        Object.keys(result)
-    ) {
-
-        for (
-            const date of
-            Object.keys(
-                result[nmId]
+        if (
+            !Array.isArray(
+                report
             )
         ) {
+
+            throw new Error(
+                'WB FINANCE: ожидался массив'
+            );
+
+        }
+
+
+        console.log(
+            `WB FINANCE: получено строк ${report.length}`
+        );
+
+
+        // ====================================================
+        // nmId × date
+        // ====================================================
+
+        const result = {};
+
+
+        for (
+            const row of report
+        ) {
+
+            const nmId =
+                Number(
+                    row.nm_id
+                );
+
+
+            if (
+                !Number.isFinite(
+                    nmId
+                ) ||
+                nmId <= 0
+            ) {
+
+                continue;
+
+            }
+
+
+            // -----------------------------------------------
+            // Дата операции
+            // -----------------------------------------------
+
+            const date =
+                String(
+                    row.date ||
+                    row.moment ||
+                    ''
+                ).slice(
+                    0,
+                    10
+                );
+
+
+            if (!date) {
+
+                continue;
+
+            }
+
+
+            // -----------------------------------------------
+            // Создаём структуру
+            // -----------------------------------------------
+
+            if (
+                !result[nmId]
+            ) {
+
+                result[nmId] =
+                    {};
+
+            }
+
+
+            if (
+                !result[nmId][date]
+            ) {
+
+                result[nmId][date] = {
+
+                    forPay:
+                        0,
+
+                    logistics:
+                        0,
+
+                    retailSales:
+                        0,
+
+                    quantity:
+                        0
+
+                };
+
+            }
+
 
             const item =
                 result[nmId][date];
 
 
-            item.forPay =
+            // =============================================
+            // ПРОДАЖА
+            // =============================================
+
+            if (
+                row.supplier_oper_name ===
+                'Продажа'
+            ) {
+
+                item.forPay +=
+                    Number(
+                        row.ppvz_for_pay ||
+                        0
+                    );
+
+
+                item.retailSales +=
+                    Number(
+                        row.retail_price_withdisc_rub ||
+                        0
+                    );
+
+
+                item.quantity +=
+                    Number(
+                        row.quantity ||
+                        0
+                    );
+
+            }
+
+
+            // =============================================
+            // ВОЗВРАТ
+            // =============================================
+
+            if (
+                row.supplier_oper_name ===
+                'Возврат'
+            ) {
+
+                item.forPay -=
+                    Number(
+                        row.ppvz_for_pay ||
+                        0
+                    );
+
+
+                item.retailSales -=
+                    Number(
+                        row.retail_price_withdisc_rub ||
+                        0
+                    );
+
+
+                item.quantity -=
+                    Number(
+                        row.quantity ||
+                        0
+                    );
+
+            }
+
+
+            // =============================================
+            // ЛОГИСТИКА
+            // =============================================
+
+            item.logistics +=
                 Number(
-                    item.forPay.toFixed(2)
-                );
-
-
-            item.logistics =
-                Number(
-                    item.logistics.toFixed(2)
-                );
-
-
-            item.retailSales =
-                Number(
-                    item.retailSales.toFixed(2)
-                );
-
-
-            item.quantity =
-                Number(
-                    item.quantity
+                    row.rebill_logistic_cost ||
+                    0
                 );
 
         }
 
+
+        // ====================================================
+        // ОКРУГЛЕНИЕ
+        // ====================================================
+
+        for (
+            const nmId of
+            Object.keys(
+                result
+            )
+        ) {
+
+            for (
+                const date of
+                Object.keys(
+                    result[nmId]
+                )
+            ) {
+
+                const item =
+                    result[nmId][date];
+
+
+                item.forPay =
+                    Number(
+                        item.forPay.toFixed(2)
+                    );
+
+
+                item.logistics =
+                    Number(
+                        item.logistics.toFixed(2)
+                    );
+
+
+                item.retailSales =
+                    Number(
+                        item.retailSales.toFixed(2)
+                    );
+
+
+                item.quantity =
+                    Number(
+                        item.quantity
+                    );
+
+            }
+
+        }
+
+
+        console.log(
+            'WB FINANCE: связок nmId × день:',
+            Object.values(result)
+                .reduce(
+                    (
+                        sum,
+                        dates
+                    ) =>
+                        sum +
+                        Object.keys(
+                            dates
+                        ).length,
+                    0
+                )
+        );
+
+
+        return result;
     }
 
 
-    console.log(
-        'Финансовых связок nmId × день:',
-        Object.values(result)
-            .reduce(
-                (
-                    sum,
-                    dates
-                ) =>
-                    sum +
-                    Object.keys(
-                        dates
-                    ).length,
-                0
-            )
+    throw new Error(
+        'WB FINANCE: не удалось получить отчёт'
     );
-
-
-    return result;
 }
 // ============================================================
 // ХРАНЕНИЕ ПО КАЖДОМУ ДНЮ
