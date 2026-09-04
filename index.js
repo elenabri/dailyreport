@@ -24,7 +24,18 @@ throw new Error(
 }
 
 const MS_TOKEN = '562d927aad09e55f49bed5ebd3751c7ccfd19a23';
+const axios = require('axios');
 
+const api = axios.create({
+    baseURL:
+        'https://api.moysklad.ru/api/remap/1.2',
+    headers: {
+        Authorization:
+            `Bearer ${MS_TOKEN}`,
+        Accept:
+            'application/json;charset=utf-8'
+    }
+});
 const MS_COST_PRICE_TYPE_ID =
     '32aeeb71-7b95-11f1-0a80-067e000fa1e9';
 
@@ -2230,7 +2241,7 @@ async function getMoySkladCosts(products) {
     return result;
 }
 
-
+async function buildDashboard() {
 // ========================================================
 // ЗАКАЗЫ
 // ========================================================
