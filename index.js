@@ -2030,8 +2030,8 @@ return buildStocks(
 async function getMoySkladCosts(products) {
     const result = {};
 
-    // Берём артикулы уже готовой таблицы WB.
-    // В МойСклад этот артикул = code товара.
+    // Берём артикулы из уже сформированной таблицы WB.
+    // В МойСклад этот артикул соответствует полю code.
     const uniqueCodes = [
         ...new Set(
             products
@@ -2043,13 +2043,11 @@ async function getMoySkladCosts(products) {
     ];
 
     console.log(
-        `\nМойСклад: ищем себестоимость для ${uniqueCodes.length} артикулов`
+        `МойСклад: ищем себестоимость для ${uniqueCodes.length} артикулов`
     );
 
     for (const code of uniqueCodes) {
-
         try {
-
             console.log(
                 `МойСклад: ищу товар по code = ${code}`
             );
@@ -2061,25 +2059,22 @@ async function getMoySkladCosts(products) {
 
             const response = await fetch(url, {
                 method: 'GET',
-
                 headers: {
                     'Authorization': `Bearer ${MS_TOKEN}`,
-                    'Accept': 'application/json'
+                    'Accept': 'application/json;charset=utf-8'
                 },
-
                 signal: AbortSignal.timeout(60000)
             });
 
             const text = await response.text();
 
-            // ----------------------------------------------------
+            // --------------------------------------------------
             // ОШИБКА HTTP
-            // ----------------------------------------------------
+            // --------------------------------------------------
 
             if (!response.ok) {
-
                 console.error(
-                    `МойСклад: ошибка ${code} — HTTP ${response.status}`
+                    `МойСклад ${code}: HTTP ${response.status}`
                 );
 
                 console.error(
@@ -2087,24 +2082,20 @@ async function getMoySkladCosts(products) {
                 );
 
                 result[code] = null;
-
                 continue;
             }
 
-            // ----------------------------------------------------
-            // JSON
-            // ----------------------------------------------------
+            // --------------------------------------------------
+            // РАЗБИРАЕМ JSON
+            // --------------------------------------------------
 
             let data;
 
             try {
-
                 data = JSON.parse(text);
-
             } catch (error) {
-
                 console.error(
-                    `МойСклад: ${code} — сервер вернул не JSON`
+                    `МойСклад ${code}: ответ не является JSON`
                 );
 
                 console.error(
@@ -2112,13 +2103,12 @@ async function getMoySkladCosts(products) {
                 );
 
                 result[code] = null;
-
                 continue;
             }
 
-            // ----------------------------------------------------
-            // ТОВАР
-            // ----------------------------------------------------
+            // --------------------------------------------------
+            // ИЩЕМ ТОВАР
+            // --------------------------------------------------
 
             const rows =
                 Array.isArray(data?.rows)
@@ -2126,13 +2116,11 @@ async function getMoySkladCosts(products) {
                     : [];
 
             if (!rows.length) {
-
                 console.log(
-                    `МойСклад: товар НЕ найден: ${code}`
+                    `МойСклад: товар не найден: ${code}`
                 );
 
                 result[code] = null;
-
                 continue;
             }
 
@@ -2142,9 +2130,9 @@ async function getMoySkladCosts(products) {
                 `МойСклад: товар найден: ${code} → ${msProduct.name || ''}`
             );
 
-            // ----------------------------------------------------
+            // --------------------------------------------------
             // SALE PRICES
-            // ----------------------------------------------------
+            // --------------------------------------------------
 
             const salePrices =
                 Array.isArray(msProduct.salePrices)
@@ -2152,31 +2140,18 @@ async function getMoySkladCosts(products) {
                     : [];
 
             console.log(
-                `МойСклад: ${code} — найдено типов цен: ${salePrices.length}`
+                `МойСклад: ${code} — типов цен: ${salePrices.length}`
             );
 
-            // Показываем цены в логах,
-            // чтобы точно видеть, что вернул API.
-            console.log(
-                `МойСклад: salePrices для ${code}:`,
-                JSON.stringify(
-                    salePrices,
-                    null,
-                    2
-                )
-            );
-
-            // ----------------------------------------------------
+            // --------------------------------------------------
             // ИЩЕМ "СЕБЕСТОИМОСТЬ БЕЗ НДС"
-            // ----------------------------------------------------
+            // --------------------------------------------------
 
             let cost = null;
 
             for (const price of salePrices) {
-
                 const priceTypeId =
-                    price?.priceType?.id ||
-                    '';
+                    price?.priceType?.id || '';
 
                 const priceTypeName =
                     String(
@@ -2185,20 +2160,10 @@ async function getMoySkladCosts(products) {
                         ''
                     ).trim();
 
-                console.log(
-                    `МойСклад: ${code} — тип цены:`,
-                    {
-                        id: priceTypeId,
-                        name: priceTypeName,
-                        value: price?.value
-                    }
-                );
-
                 if (
                     priceTypeId === MS_COST_PRICE_TYPE_ID ||
                     priceTypeName === 'Себестоимость без НДС'
                 ) {
-
                     if (
                         price?.value !== null &&
                         price?.value !== undefined &&
@@ -2206,9 +2171,7 @@ async function getMoySkladCosts(products) {
                             Number(price.value)
                         )
                     ) {
-
-                        // В API МойСклад стоимость хранится
-                        // в копейках.
+                        // МойСклад возвращает value в копейках.
                         cost =
                             Number(price.value) / 100;
                     }
@@ -2217,34 +2180,30 @@ async function getMoySkladCosts(products) {
                 }
             }
 
-            // ----------------------------------------------------
-            // РЕЗУЛЬТАТ
-            // ----------------------------------------------------
+            // --------------------------------------------------
+            // СОХРАНЯЕМ РЕЗУЛЬТАТ
+            // --------------------------------------------------
 
             if (
                 cost !== null &&
                 Number.isFinite(cost)
             ) {
-
                 result[code] = cost;
 
                 console.log(
-                    `МойСклад: ${code} → СЕБЕСТОИМОСТЬ = ${cost} ₽`
+                    `МойСклад: ${code} → себестоимость ${cost} ₽`
                 );
-
             } else {
-
                 result[code] = null;
 
                 console.log(
-                    `МойСклад: ${code} → СЕБЕСТОИМОСТЬ НЕ НАЙДЕНА`
+                    `МойСклад: ${code} → себестоимость не найдена`
                 );
             }
 
         } catch (error) {
-
             console.error(
-                `МойСклад: ошибка при поиске ${code}:`,
+                `МойСклад: ошибка для ${code}:`,
                 error.message
             );
 
@@ -2252,20 +2211,9 @@ async function getMoySkladCosts(products) {
         }
     }
 
-    // --------------------------------------------------------
-    // ФИНАЛЬНЫЙ РЕЗУЛЬТАТ
-    // --------------------------------------------------------
-
     console.log(
-        '\nМойСклад: итоговые себестоимости:'
-    );
-
-    console.log(
-        JSON.stringify(
-            result,
-            null,
-            2
-        )
+        'МойСклад: итоговые себестоимости:',
+        JSON.stringify(result, null, 2)
     );
 
     return result;
