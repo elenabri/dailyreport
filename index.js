@@ -2038,46 +2038,33 @@ async function getMoySkladCosts(products) {
         )
     ];
 
-    console.log(`MoySklad: ищем себестоимость для ${uniqueCodes.length} артикулов`);
+    console.log(
+        `MoySklad: ищем себестоимость для ${uniqueCodes.length} артикулов`
+    );
 
     for (const code of uniqueCodes) {
         try {
-            const url =
-                `https://api.moysklad.ru/api/remap/1.2/entity/product` +
-                `?filter=code=${encodeURIComponent(code)}&limit=1`;
+            console.log(`Ищу товар: ${code}`);
 
-            const response = await fetch(url, {
-                headers: {
-                    'Authorization': `Bearer ${MS_TOKEN}`,
-                    'Accept-Encoding': 'gzip'
+            const productResponse = await api.get('/entity/product', {
+                params: {
+                    filter: `code=${code}`,
+                    limit: 1
                 }
             });
 
-            if (!response.ok) {
-                const text = await response.text();
+            const productsMS = productResponse.data.rows || [];
 
-                console.error(
-                    `MoySklad product ${code}: HTTP ${response.status}`,
-                    text.slice(0, 500)
-                );
-
+            if (!productsMS.length) {
+                console.log(`МойСклад: товар не найден: ${code}`);
                 continue;
             }
 
-            const data = await response.json();
-
-            const product = data?.rows?.[0];
-
-            if (!product) {
-                console.log(`MoySklad: товар не найден: ${code}`);
-                continue;
-            }
+            const productMS = productsMS[0];
 
             let cost = null;
 
-            // Ищем цену типа "Себестоимость без НДС"
-            // Сначала по ID, затем по названию.
-            for (const price of product.salePrices || []) {
+            for (const price of productMS.salePrices || []) {
                 const priceTypeId =
                     price?.priceType?.id || '';
 
@@ -2103,18 +2090,18 @@ async function getMoySkladCosts(products) {
                 result[code] = cost;
 
                 console.log(
-                    `MoySklad: ${code} → себестоимость ${cost}`
+                    `МойСклад: ${code} → себестоимость ${cost}`
                 );
             } else {
                 console.log(
-                    `MoySklad: ${code} → "Себестоимость без НДС" не найдена`
+                    `МойСклад: ${code} → себестоимость не найдена`
                 );
             }
 
         } catch (error) {
             console.error(
                 `MoySklad error for ${code}:`,
-                error.message
+                error.response?.data || error.message
             );
         }
     }
