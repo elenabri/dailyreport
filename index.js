@@ -290,7 +290,7 @@ async function wbGet(
                 await response.text();
 
 
-            if () {
+            if (!response.ok) {
 
                 const error =
                     new Error(
