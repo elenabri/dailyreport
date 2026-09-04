@@ -1307,10 +1307,10 @@ for (
 
             nmId,
 
-            article:
-                row.supplierArticle ||
-                row.vendorCode ||
-                '',
+                article:
+        String(
+            row.supplierArticle || ''
+        ).trim()
 
             name: '',
 
@@ -2035,153 +2035,98 @@ return buildStocks(
 // ============================================================
 
 async function getMoySkladCosts(products) {
-
-    const costs = {};
-
-    if (!MS_TOKEN) {
-        console.warn(
-            'MS_TOKEN не задан — себестоимость МойСклад недоступна'
-        );
-
-        return costs;
-    }
+    const result = {};
 
     const uniqueCodes = [
         ...new Set(
             products
-                .map(product =>
-                    String(
-                        product.article || ''
-                    ).trim()
-                )
+                .map(product => String(product.article || '').trim())
                 .filter(Boolean)
         )
     ];
 
-    console.log(
-        `МойСклад: получаем себестоимость для ${uniqueCodes.length} товаров`
-    );
+    console.log(`MoySklad: ищем себестоимость для ${uniqueCodes.length} артикулов`);
 
     for (const code of uniqueCodes) {
-
         try {
-
             const url =
-                'https://api.moysklad.ru/api/remap/1.2/entity/product' +
-                `?filter=code=${encodeURIComponent(code)}` +
-                '&limit=1';
+                `https://api.moysklad.ru/api/remap/1.2/entity/product` +
+                `?filter=code=${encodeURIComponent(code)}&limit=1`;
 
-            const response = await fetch(
-                url,
-                {
-                    method: 'GET',
-
-                    headers: {
-                        Authorization:
-                            `Bearer ${MS_TOKEN}`,
-
-                        Accept:
-                            'application/json;charset=utf-8'
-                    },
-
-                    signal:
-                        AbortSignal.timeout(60000)
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${MS_TOKEN}`,
+                    'Accept-Encoding': 'gzip'
                 }
-            );
-
-            const text =
-                await response.text();
+            });
 
             if (!response.ok) {
+                const text = await response.text();
 
-                throw new Error(
-                    `МойСклад ${response.status}: ${text}`
-                );
-            }
-
-            const data =
-                JSON.parse(text);
-
-            const rows =
-                data?.rows || [];
-
-            if (!rows.length) {
-
-                console.warn(
-                    `МойСклад: товар ${code} не найден`
+                console.error(
+                    `MoySklad product ${code}: HTTP ${response.status}`,
+                    text.slice(0, 500)
                 );
 
                 continue;
             }
 
-            const msProduct =
-                rows[0];
+            const data = await response.json();
 
-            const salePrices =
-                Array.isArray(
-                    msProduct.salePrices
-                )
-                    ? msProduct.salePrices
-                    : [];
+            const product = data?.rows?.[0];
 
-            // Сначала ищем по ID типа цены
-            let costPrice =
-                salePrices.find(
-                    price =>
-                        price?.priceType?.id ===
-                        MS_COST_PRICE_TYPE_ID
-                );
-
-            // Резервный вариант — по названию
-            if (!costPrice) {
-
-                costPrice =
-                    salePrices.find(
-                        price =>
-                            String(
-                                price?.priceType?.name || ''
-                            ).trim() ===
-                            'Себестоимость без НДС'
-                    );
+            if (!product) {
+                console.log(`MoySklad: товар не найден: ${code}`);
+                continue;
             }
 
-            if (
-                costPrice?.value != null
-            ) {
+            let cost = null;
 
-                // МойСклад хранит цену в минимальных единицах
-                const cost =
-                    Number(
-                        costPrice.value
-                    ) / 100;
+            // Ищем цену типа "Себестоимость без НДС"
+            // Сначала по ID, затем по названию.
+            for (const price of product.salePrices || []) {
+                const priceTypeId =
+                    price?.priceType?.id || '';
+
+                const priceTypeName = String(
+                    price?.priceType?.name ||
+                    price?.priceType ||
+                    ''
+                ).trim();
 
                 if (
-                    Number.isFinite(cost)
+                    priceTypeId === MS_COST_PRICE_TYPE_ID ||
+                    priceTypeName === 'Себестоимость без НДС'
                 ) {
+                    if (price?.value != null) {
+                        cost = Number(price.value) / 100;
+                    }
 
-                    costs[code] =
-                        cost;
-
-                    console.log(
-                        `МойСклад: ${code} = ${cost} ₽`
-                    );
+                    break;
                 }
             }
 
-        } catch (error) {
+            if (cost !== null && Number.isFinite(cost)) {
+                result[code] = cost;
 
+                console.log(
+                    `MoySklad: ${code} → себестоимость ${cost}`
+                );
+            } else {
+                console.log(
+                    `MoySklad: ${code} → "Себестоимость без НДС" не найдена`
+                );
+            }
+
+        } catch (error) {
             console.error(
-                `МойСклад ${code} ERROR:`,
+                `MoySklad error for ${code}:`,
                 error.message
             );
         }
     }
 
-    console.log(
-        `МойСклад: получено себестоимостей ${Object.keys(costs).length}/${uniqueCodes.length}`
-    );
-
-    return costs;
+    return result;
 }
 // ============================================================
 // DASHBOARD
@@ -2325,10 +2270,9 @@ for (const product of products) {
             meta[nmId].name;
     }
 
-    if (meta[nmId]?.article) {
-        product.article =
-            meta[nmId].article;
-    }
+if (!product.article && meta[nmId]?.article) {
+    product.article = meta[nmId].article;
+}
 }
 
 
