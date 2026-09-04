@@ -2782,7 +2782,676 @@ async function getMoySkladCosts(
 
 }
 
+// ============================================================
+// ФИНАНСЫ ПО КАЖДОМУ ДНЮ
+//
+// Источник:
+// reportDetailByPeriod
+//
+// Результат:
+//
+// dailyFinancials[nmId][date] = {
+//     forPay,
+//     logistics,
+//     retailSales,
+//     quantity
+// }
+//
+// Сегодня тоже запрашиваем,
+// но в таблице финансовые показатели сегодня = —
+// ============================================================
 
+async function getDailyFinancials(
+    dateFrom,
+    dateTo
+) {
+
+    console.log('');
+    console.log(
+        '========================================'
+    );
+    console.log(
+        'ПОЛУЧАЕМ ФИНАНСОВЫЙ ОТЧЁТ WB'
+    );
+    console.log(
+        `${dateFrom} -> ${dateTo}`
+    );
+    console.log(
+        '========================================'
+    );
+
+    const url =
+        'https://statistics-api.wildberries.ru/api/v5/supplier/reportDetailByPeriod' +
+        `?dateFrom=${dateFrom}` +
+        `&dateTo=${dateTo}`;
+
+    const response =
+        await fetch(
+            url,
+            {
+                headers: {
+                    Authorization:
+                        WB_TOKEN
+                },
+
+                signal:
+                    AbortSignal.timeout(
+                        60000
+                    )
+            }
+        );
+
+    const text =
+        await response.text();
+
+    if (!response.ok) {
+
+        throw new Error(
+            `WB FINANCE ${response.status}: ${text}`
+        );
+
+    }
+
+    let report;
+
+    try {
+
+        report =
+            JSON.parse(
+                text
+            );
+
+    } catch {
+
+        throw new Error(
+            `WB FINANCE вернул не JSON: ${text.slice(0, 1000)}`
+        );
+
+    }
+
+    if (
+        !Array.isArray(report)
+    ) {
+
+        throw new Error(
+            'WB FINANCE: ожидался массив'
+        );
+
+    }
+
+    const result = {};
+
+    for (
+        const row of report
+    ) {
+
+        const nmId =
+            Number(
+                row.nm_id
+            );
+
+        if (
+            !Number.isFinite(nmId) ||
+            nmId <= 0
+        ) {
+
+            continue;
+
+        }
+
+        const date =
+            String(
+                row.date ||
+                row.moment ||
+                ''
+            ).slice(
+                0,
+                10
+            );
+
+        if (!date) {
+
+            continue;
+
+        }
+
+        if (
+            !result[nmId]
+        ) {
+
+            result[nmId] =
+                {};
+
+        }
+
+        if (
+            !result[nmId][date]
+        ) {
+
+            result[nmId][date] = {
+
+                forPay:
+                    0,
+
+                logistics:
+                    0,
+
+                retailSales:
+                    0,
+
+                quantity:
+                    0
+
+            };
+
+        }
+
+        const item =
+            result[nmId][date];
+
+        // ====================================================
+        // ПРОДАЖА
+        // ====================================================
+
+        if (
+            row.supplier_oper_name ===
+            'Продажа'
+        ) {
+
+            item.forPay +=
+                Number(
+                    row.ppvz_for_pay ||
+                    0
+                );
+
+            item.retailSales +=
+                Number(
+                    row.retail_price_withdisc_rub ||
+                    0
+                );
+
+            item.quantity +=
+                Number(
+                    row.quantity ||
+                    0
+                );
+
+        }
+
+        // ====================================================
+        // ВОЗВРАТ
+        // ====================================================
+
+        if (
+            row.supplier_oper_name ===
+            'Возврат'
+        ) {
+
+            item.forPay -=
+                Number(
+                    row.ppvz_for_pay ||
+                    0
+                );
+
+            item.retailSales -=
+                Number(
+                    row.retail_price_withdisc_rub ||
+                    0
+                );
+
+            item.quantity -=
+                Number(
+                    row.quantity ||
+                    0
+                );
+
+        }
+
+        // ====================================================
+        // ЛОГИСТИКА
+        // ====================================================
+
+        item.logistics +=
+            Number(
+                row.rebill_logistic_cost ||
+                0
+            );
+
+    }
+
+    for (
+        const nmId of
+        Object.keys(result)
+    ) {
+
+        for (
+            const date of
+            Object.keys(
+                result[nmId]
+            )
+        ) {
+
+            const item =
+                result[nmId][date];
+
+            item.forPay =
+                Number(
+                    item.forPay.toFixed(2)
+                );
+
+            item.logistics =
+                Number(
+                    item.logistics.toFixed(2)
+                );
+
+            item.retailSales =
+                Number(
+                    item.retailSales.toFixed(2)
+                );
+
+            item.quantity =
+                Number(
+                    item.quantity
+                );
+
+        }
+
+    }
+
+    console.log(
+        'Финансовых связок nmId × день:',
+        Object.values(result)
+            .reduce(
+                (
+                    sum,
+                    dates
+                ) =>
+                    sum +
+                    Object.keys(
+                        dates
+                    ).length,
+                0
+            )
+    );
+
+    return result;
+}
+
+// ============================================================
+// ХРАНЕНИЕ ПО КАЖДОМУ ДНЮ
+//
+// result[nmId][date] = storage
+// ============================================================
+
+async function getDailyStorage(
+    dateFrom,
+    dateTo
+) {
+
+    console.log('');
+    console.log(
+        '========================================'
+    );
+    console.log(
+        'ПОЛУЧАЕМ ХРАНЕНИЕ WB'
+    );
+    console.log(
+        `${dateFrom} -> ${dateTo}`
+    );
+    console.log(
+        '========================================'
+    );
+
+    // ========================================================
+    // 1. СОЗДАЁМ ОТЧЁТ
+    // ========================================================
+
+    const createResponse =
+        await fetch(
+
+            `https://seller-analytics-api.wildberries.ru/api/v1/paid_storage` +
+            `?dateFrom=${dateFrom}` +
+            `&dateTo=${dateTo}`,
+
+            {
+
+                headers: {
+
+                    Authorization:
+                        WB_TOKEN
+
+                },
+
+                signal:
+                    AbortSignal.timeout(
+                        60000
+                    )
+
+            }
+        );
+
+    const createText =
+        await createResponse.text();
+
+    if (!createResponse.ok) {
+
+        throw new Error(
+            `WB STORAGE CREATE ${createResponse.status}: ${createText}`
+        );
+
+    }
+
+    let createData;
+
+    try {
+
+        createData =
+            JSON.parse(
+                createText
+            );
+
+    } catch {
+
+        throw new Error(
+            `WB STORAGE CREATE вернул не JSON: ${createText.slice(0, 1000)}`
+        );
+
+    }
+
+    const taskId =
+        createData?.data?.taskId;
+
+    if (!taskId) {
+
+        throw new Error(
+            `WB STORAGE: taskId отсутствует: ${createText}`
+        );
+
+    }
+
+    console.log(
+        'STORAGE TASK:',
+        taskId
+    );
+
+    // ========================================================
+    // 2. ЖДЁМ
+    // ========================================================
+
+    let status = '';
+
+    for (
+        let attempt = 1;
+        attempt <= 60;
+        attempt++
+    ) {
+
+        await sleep(
+            5000
+        );
+
+        const statusResponse =
+            await fetch(
+
+                `https://seller-analytics-api.wildberries.ru/api/v1/paid_storage/tasks/${taskId}/status`,
+
+                {
+
+                    headers: {
+
+                        Authorization:
+                            WB_TOKEN
+
+                    },
+
+                    signal:
+                        AbortSignal.timeout(
+                            60000
+                        )
+
+                }
+            );
+
+        const statusText =
+            await statusResponse.text();
+
+        if (
+            !statusResponse.ok
+        ) {
+
+            throw new Error(
+                `WB STORAGE STATUS ${statusResponse.status}: ${statusText}`
+            );
+
+        }
+
+        let statusData;
+
+        try {
+
+            statusData =
+                JSON.parse(
+                    statusText
+                );
+
+        } catch {
+
+            throw new Error(
+                `WB STORAGE STATUS вернул не JSON: ${statusText.slice(0, 1000)}`
+            );
+
+        }
+
+        status =
+            statusData?.data?.status ||
+            '';
+
+        console.log(
+            `STORAGE STATUS ${attempt}/60: ${status}`
+        );
+
+        if (
+            status === 'done'
+        ) {
+
+            break;
+
+        }
+
+        if (
+            status === 'error'
+        ) {
+
+            throw new Error(
+                `WB STORAGE REPORT ERROR: ${statusText}`
+            );
+
+        }
+
+    }
+
+    if (
+        status !== 'done'
+    ) {
+
+        throw new Error(
+            'WB STORAGE: отчёт не сформировался'
+        );
+
+    }
+
+    // ========================================================
+    // 3. СКАЧИВАЕМ
+    // ========================================================
+
+    const downloadResponse =
+        await fetch(
+
+            `https://seller-analytics-api.wildberries.ru/api/v1/paid_storage/tasks/${taskId}/download`,
+
+            {
+
+                headers: {
+
+                    Authorization:
+                        WB_TOKEN
+
+                },
+
+                signal:
+                    AbortSignal.timeout(
+                        60000
+                    )
+
+            }
+        );
+
+    const downloadText =
+        await downloadResponse.text();
+
+    if (
+        !downloadResponse.ok
+    ) {
+
+        throw new Error(
+            `WB STORAGE DOWNLOAD ${downloadResponse.status}: ${downloadText}`
+        );
+
+    }
+
+    let report;
+
+    try {
+
+        report =
+            JSON.parse(
+                downloadText
+            );
+
+    } catch {
+
+        throw new Error(
+            `WB STORAGE DOWNLOAD вернул не JSON: ${downloadText.slice(0, 1000)}`
+        );
+
+    }
+
+    if (
+        !Array.isArray(report)
+    ) {
+
+        throw new Error(
+            'WB STORAGE: скачанный отчёт не является массивом'
+        );
+
+    }
+
+    // ========================================================
+    // 4. nmId × дата
+    // ========================================================
+
+    const result = {};
+
+    for (
+        const row of report
+    ) {
+
+        const nmId =
+            Number(
+                row.nmId
+            );
+
+        if (
+            !Number.isFinite(nmId) ||
+            nmId <= 0
+        ) {
+
+            continue;
+
+        }
+
+        const date =
+            String(
+                row.date ||
+                row.dt ||
+                ''
+            ).slice(
+                0,
+                10
+            );
+
+        if (!date) {
+
+            continue;
+
+        }
+
+        if (
+            !result[nmId]
+        ) {
+
+            result[nmId] =
+                {};
+
+        }
+
+        if (
+            !result[nmId][date]
+        ) {
+
+            result[nmId][date] =
+                0;
+
+        }
+
+        result[nmId][date] +=
+            Number(
+                row.warehousePrice ||
+                0
+            );
+
+    }
+
+    for (
+        const nmId of
+        Object.keys(result)
+    ) {
+
+        for (
+            const date of
+            Object.keys(
+                result[nmId]
+            )
+        ) {
+
+            result[nmId][date] =
+                Number(
+                    result[nmId][date]
+                        .toFixed(2)
+                );
+
+        }
+
+    }
+
+    console.log(
+        'Хранение: связок nmId × день:',
+        Object.values(result)
+            .reduce(
+                (
+                    sum,
+                    dates
+                ) =>
+                    sum +
+                    Object.keys(
+                        dates
+                    ).length,
+                0
+            )
+    );
+
+    return result;
+}
 // ============================================================
 // DASHBOARD
 // ============================================================
@@ -2969,7 +3638,35 @@ async function buildDashboard() {
         await getMoySkladCosts(
             products
         );
+// ========================================================
+// ФИНАНСЫ ЗА ПОЗАВЧЕРА → СЕГОДНЯ
+// ========================================================
 
+const financialFrom =
+    addDays(
+        today,
+        -2
+    );
+
+const financialTo =
+    today;
+
+const dailyFinancials =
+    await getDailyFinancials(
+        financialFrom,
+        financialTo
+    );
+
+
+// ========================================================
+// ХРАНЕНИЕ ЗА ПОЗАВЧЕРА → СЕГОДНЯ
+// ========================================================
+
+const dailyStorage =
+    await getDailyStorage(
+        financialFrom,
+        financialTo
+    );
 
     // ========================================================
     // ПОСЛЕДНИЕ 3 ДНЯ
@@ -3145,112 +3842,315 @@ async function buildDashboard() {
 
                     return {
 
-                        date,
+    date,
 
 
-                        buyerPrice:
-                            d.buyerPrice,
+    buyerPrice:
+        d.buyerPrice,
 
 
-                        spp:
-                            d.spp,
+    spp:
+        d.spp,
 
 
-                        sellerPrice:
-                            d.sellerPrice,
+    sellerPrice:
+        d.sellerPrice,
 
 
-                        sales:
-                            Number(
-                                d.sales ||
-                                0
-                            ),
+    sales:
+        Number(
+            d.sales ||
+            0
+        ),
 
 
-                        advertising: {
+    // =================================================
+    // РЕКЛАМА
+    // =================================================
 
-                            views:
-                                Number(
-                                    advertising.views ||
-                                    0
-                                ),
+    advertising: {
 
+        views:
+            Number(
+                advertising.views ||
+                0
+            ),
 
-                            clicks:
-                                Number(
-                                    advertising.clicks ||
-                                    0
-                                ),
+        clicks:
+            Number(
+                advertising.clicks ||
+                0
+            ),
 
+        atbs:
+            Number(
+                advertising.atbs ||
+                0
+            ),
 
-                            atbs:
-                                Number(
-                                    advertising.atbs ||
-                                    0
-                                ),
+        cpm:
+            Number(
+                advertising.cpm ||
+                0
+            ),
 
+        spend:
+            Number(
+                advertising.spend ||
+                0
+            )
 
-                            cpm:
-                                Number(
-                                    advertising.cpm ||
-                                    0
-                                ),
-
-
-                            spend:
-                                Number(
-                                    advertising.spend ||
-                                    0
-                                )
-
-                        },
-
-
-                        buyerPriceSource:
-
-                            date === today
-
-                                ? 'current-api'
-
-                                : (
-                                    d.buyerPrice == null
-
-                                        ? null
-
-                                        : 'order'
-                                ),
+    },
 
 
-                        sellerPriceSource:
+    // =================================================
+    // ФИНАНСЫ
+    // =================================================
 
-                            date === today
+    financial:
 
-                                ? 'current-api'
+        date === today
 
-                                : (
-                                    d.sellerPrice == null
+            ? {
 
-                                        ? null
+                forPay:
+                    null,
 
-                                        : 'order'
-                                ),
+                logistics:
+                    null,
 
+                storage:
+                    null,
 
-                        sppSource:
+                profit:
+                    null,
 
-                            date === today
+                retailSales:
+                    null,
 
-                                ? 'calculated'
+                costTotal:
+                    null,
 
-                                : (
-                                    d.spp == null
+                profitability:
+                    null,
 
-                                        ? null
+                margin:
+                    null
 
-                                        : 'order'
-                                )
+            }
+
+            : (() => {
+
+                const finance =
+                    dailyFinancials[nmId]?.[date] || {
+
+                        forPay:
+                            0,
+
+                        logistics:
+                            0,
+
+                        retailSales:
+                            0,
+
+                        quantity:
+                            0
 
                     };
+
+
+                const storage =
+                    Number(
+                        dailyStorage[nmId]?.[date] ||
+                        0
+                    );
+
+
+                // WB Продвижение =
+                // уже существующие Затраты
+
+                const wbPromotion =
+                    Number(
+                        advertising.spend ||
+                        0
+                    );
+
+
+                // -----------------------------------------
+                // ПРИБЫЛЬ
+                //
+                // К перечислению
+                // − Логистика
+                // − Хранение
+                // − WB Продвижение
+                // -----------------------------------------
+
+                const profit =
+                    Number(
+                        (
+                            Number(
+                                finance.forPay ||
+                                0
+                            )
+                            -
+                            Number(
+                                finance.logistics ||
+                                0
+                            )
+                            -
+                            storage
+                            -
+                            wbPromotion
+                        ).toFixed(2)
+                    );
+
+
+                // -----------------------------------------
+                // СЕБЕСТОИМОСТЬ ПРОДАННОГО
+                // -----------------------------------------
+
+                const sales =
+                    Number(
+                        d.sales ||
+                        0
+                    );
+
+
+                const costTotal =
+                    Number(
+                        (
+                            Number(
+                                cost ||
+                                0
+                            ) *
+                            sales
+                        ).toFixed(2)
+                    );
+
+
+                // -----------------------------------------
+                // РЕНТАБЕЛЬНОСТЬ
+                //
+                // Прибыль /
+                // Себестоимость проданного × 100
+                // -----------------------------------------
+
+                const profitability =
+                    costTotal > 0
+
+                        ? Number(
+                            (
+                                profit /
+                                costTotal *
+                                100
+                            ).toFixed(2)
+                        )
+
+                        : null;
+
+
+                // -----------------------------------------
+                // МАРЖА
+                //
+                // Прибыль /
+                // Цена розничная × 100
+                // -----------------------------------------
+
+                const retailSales =
+                    Number(
+                        finance.retailSales ||
+                        0
+                    );
+
+
+                const margin =
+                    retailSales > 0
+
+                        ? Number(
+                            (
+                                profit /
+                                retailSales *
+                                100
+                            ).toFixed(2)
+                        )
+
+                        : null;
+
+
+                return {
+
+                    forPay:
+                        Number(
+                            finance.forPay ||
+                            0
+                        ),
+
+                    logistics:
+                        Number(
+                            finance.logistics ||
+                            0
+                        ),
+
+                    storage,
+
+                    profit,
+
+                    retailSales,
+
+                    costTotal,
+
+                    profitability,
+
+                    margin
+
+                };
+
+            })(),
+
+
+    // =================================================
+    // ИСТОЧНИКИ ЦЕН
+    // =================================================
+
+    buyerPriceSource:
+
+        date === today
+
+            ? 'current-api'
+
+            : (
+                d.buyerPrice == null
+                    ? null
+                    : 'order'
+            ),
+
+
+    sellerPriceSource:
+
+        date === today
+
+            ? 'current-api'
+
+            : (
+                d.sellerPrice == null
+                    ? null
+                    : 'order'
+            ),
+
+
+    sppSource:
+
+        date === today
+
+            ? 'calculated'
+
+            : (
+                d.spp == null
+                    ? null
+                    : 'order'
+            )
+
+};
 
                 }
             );
