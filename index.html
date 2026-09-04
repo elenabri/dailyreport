@@ -648,7 +648,7 @@ tbody tr:hover td {
                 <tr>
 
                     <td
-                        colspan="32"
+                        colspan="47"
                         class="loading"
                     >
                         Загрузка данных WB...
@@ -1059,7 +1059,7 @@ function render(data) {
                 <tr>
 
                     <td
-                        colspan="32"
+                        colspan="47"
                         class="error"
                     >
 
@@ -1249,6 +1249,11 @@ function render(data) {
             <th>
                 Продажи
             </th>
+            <th>Логистика</th>
+<th>Хранение</th>
+<th>Прибыль</th>
+<th>Рентабельность</th>
+<th>Маржа</th>
 
 
             <!-- ВЧЕРА -->
@@ -1554,7 +1559,43 @@ function render(data) {
         )}
 
     </td>
+<td>
+    ${formatMoney(
+        today.financial?.logistics
+    )}
+</td>
 
+<td>
+    ${formatMoney(
+        today.financial?.storage
+    )}
+</td>
+
+<td>
+    ${formatMoney(
+        today.financial?.profit
+    )}
+</td>
+
+<td>
+    ${
+        today.financial?.profitability == null
+            ? '<span class="empty">—</span>'
+            : formatPercent(
+                today.financial.profitability
+            )
+    }
+</td>
+
+<td>
+    ${
+        today.financial?.margin == null
+            ? '<span class="empty">—</span>'
+            : formatPercent(
+                today.financial.margin
+            )
+    }
+</td>
 
     <!-- ===================== ВЧЕРА ===================== -->
 
@@ -1646,7 +1687,43 @@ function render(data) {
         )}
 
     </td>
+<td>
+    ${formatMoney(
+        yesterday.financial?.logistics
+    )}
+</td>
 
+<td>
+    ${formatMoney(
+        yesterday.financial?.storage
+    )}
+</td>
+
+<td>
+    ${formatMoney(
+        yesterday.financial?.profit
+    )}
+</td>
+
+<td>
+    ${
+        yesterday.financial?.profitability == null
+            ? '<span class="empty">—</span>'
+            : formatPercent(
+                yesterday.financial.profitability
+            )
+    }
+</td>
+
+<td>
+    ${
+        yesterday.financial?.margin == null
+            ? '<span class="empty">—</span>'
+            : formatPercent(
+                yesterday.financial.margin
+            )
+    }
+</td>
 
     <!-- ================== ПОЗАВЧЕРА ================== -->
 
@@ -1732,7 +1809,43 @@ function render(data) {
         )}
 
     </td>
+<td>
+    ${formatMoney(
+        dayBefore.financial?.logistics
+    )}
+</td>
 
+<td>
+    ${formatMoney(
+        dayBefore.financial?.storage
+    )}
+</td>
+
+<td>
+    ${formatMoney(
+        dayBefore.financial?.profit
+    )}
+</td>
+
+<td>
+    ${
+        dayBefore.financial?.profitability == null
+            ? '<span class="empty">—</span>'
+            : formatPercent(
+                dayBefore.financial.profitability
+            )
+    }
+</td>
+
+<td>
+    ${
+        dayBefore.financial?.margin == null
+            ? '<span class="empty">—</span>'
+            : formatPercent(
+                dayBefore.financial.margin
+            )
+    }
+</td>
 
     <!-- =================== ИТОГОВЫЕ =================== -->
 
@@ -1889,7 +2002,7 @@ async function loadData() {
             <tr>
 
                 <td
-                    colspan="32"
+                    colspan="47"
                     class="loading"
                 >
 
@@ -1988,7 +2101,7 @@ async function loadData() {
                 <tr>
 
                     <td
-                        colspan="32"
+                        colspan="47"
                         class="error"
                     >
 
