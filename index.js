@@ -2605,7 +2605,7 @@ last3.map(
                             : 'order'
                     )
 
-                };
+        };
 
     );
 
@@ -2614,22 +2614,23 @@ last3.map(
             product.article || ''
         ).trim();
 
-const cost =
-    article &&
-    moySkladCosts[article] != null
-        ? moySkladCosts[article]
-        : null;
+    const cost =
+        article &&
+        moySkladCosts[article] != null
+            ? moySkladCosts[article]
+            : null;
+
     result.push({
 
-    nmId,
+        nmId,
 
-    article:
-        product.article || '',
+        article:
+            product.article || '',
 
-    name:
-        product.name || '',
+        name:
+            product.name || '',
 
-    cost,
+        cost,
 
     todayOrders:
         Number(
