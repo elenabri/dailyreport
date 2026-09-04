@@ -2783,41 +2783,24 @@ async function getMoySkladCosts(
 }
 
 // ============================================================
-// ФИНАНСЫ ПО КАЖДОМУ ДНЮ
-//
-// Источник:
-// reportDetailByPeriod
-//
-// Результат:
-//
-// dailyFinancials[nmId][date] = {
-//     forPay,
-//     logistics,
-//     retailSales,
-//     quantity
-// }
-//
-// Сегодня тоже запрашиваем,
-// но в таблице финансовые показатели сегодня = —
-// ============================================================
-
-// ============================================================
 // ФИНАНСОВЫЕ ДАННЫЕ ПО КАЖДОМУ ДНЮ
 //
-// Источник:
-// reportDetailByPeriod
+// ОДИН запрос WB за весь период.
+// Все товары приходят сразу.
+// Дальше группируем локально:
+// nmId -> date
 //
-// Результат:
+// Используем:
+// Продажа:
+//   ppvz_for_pay
+//   retail_price_withdisc_rub
+//   quantity
 //
-// dailyFinancials[nmId][date] = {
-//     forPay,
-//     logistics,
-//     retailSales,
-//     quantity
-// }
+// Возврат:
+//   те же поля вычитаем
 //
-// При 429 ждём время, которое сообщил WB:
-// X-RateLimit-Retry
+// Логистика:
+//   rebill_logistic_cost
 // ============================================================
 
 async function getDailyFinancials(
@@ -2836,6 +2819,9 @@ async function getDailyFinancials(
         `${dateFrom} -> ${dateTo}`
     );
     console.log(
+        'ОДИН ЗАПРОС ДЛЯ ВСЕХ ТОВАРОВ'
+    );
+    console.log(
         '========================================'
     );
 
@@ -2846,154 +2832,23 @@ async function getDailyFinancials(
         `&dateTo=${encodeURIComponent(dateTo)}`;
 
 
-    let report = null;
-
-
     // ========================================================
-    // ЗАПРОС С RETRY ПРИ 429
+    // ОДИН ЗАПРОС
+    //
+    // wbGet уже умеет:
+    // - retry
+    // - 429
+    // - X-RateLimit-Retry
     // ========================================================
 
-    for (
-        let attempt = 1;
-        attempt <= 5;
-        attempt++
-    ) {
-
-        console.log(
-            `WB FINANCE GET ${attempt}/5`
+    const report =
+        await wbGet(
+            url
         );
 
 
-        const response =
-            await fetch(
-                url,
-                {
-                    method:
-                        'GET',
-
-                    headers: {
-                        Authorization:
-                            WB_TOKEN,
-
-                        Accept:
-                            'application/json'
-                    },
-
-                    signal:
-                        AbortSignal.timeout(
-                            60000
-                        )
-                }
-            );
-
-
-        const text =
-            await response.text();
-
-
-        // ====================================================
-        // 429
-        // ====================================================
-
-        if (
-            response.status === 429
-        ) {
-
-            if (
-                attempt >= 5
-            ) {
-
-                throw new Error(
-                    `WB FINANCE 429 после 5 попыток: ${text}`
-                );
-
-            }
-
-
-            let retryAfter =
-                Number(
-                    response.headers.get(
-                        'X-RateLimit-Retry'
-                    )
-                );
-
-
-            if (
-                !Number.isFinite(
-                    retryAfter
-                ) ||
-                retryAfter < 1
-            ) {
-
-                retryAfter =
-                    60;
-
-            }
-
-
-            console.log(
-                `WB FINANCE 429. Ждём ${retryAfter} сек.`
-            );
-
-
-            await sleep(
-                retryAfter *
-                1000
-            );
-
-
-            continue;
-        }
-
-
-        // ====================================================
-        // ДРУГАЯ ОШИБКА
-        // ====================================================
-
-        if (
-            !response.ok
-        ) {
-
-            throw new Error(
-                `WB FINANCE ${response.status}: ${text}`
-            );
-
-        }
-
-
-        // ====================================================
-        // JSON
-        // ====================================================
-
-        try {
-
-            report =
-                JSON.parse(
-                    text
-                );
-
-        } catch {
-
-            throw new Error(
-                `WB FINANCE вернул не JSON: ${text.slice(0, 1000)}`
-            );
-
-        }
-
-
-        break;
-
-    }
-
-
-    // ========================================================
-    // ПРОВЕРКА
-    // ========================================================
-
     if (
-        !Array.isArray(
-            report
-        )
+        !Array.isArray(report)
     ) {
 
         throw new Error(
@@ -3003,12 +2858,12 @@ async function getDailyFinancials(
     }
 
 
-    // ========================================================
-    // ГРУППИРОВКА nmId × дата
-    // ========================================================
-
     const result = {};
 
+
+    // ========================================================
+    // РАЗБИРАЕМ ОТЧЁТ ЛОКАЛЬНО
+    // ========================================================
 
     for (
         const row of report
@@ -3054,8 +2909,7 @@ async function getDailyFinancials(
             !result[nmId]
         ) {
 
-            result[nmId] =
-                {};
+            result[nmId] = {};
 
         }
 
@@ -3234,7 +3088,10 @@ async function getDailyFinancials(
 // ============================================================
 // ХРАНЕНИЕ ПО КАЖДОМУ ДНЮ
 //
-// result[nmId][date] = storage
+// ОДИН отчёт paid_storage за весь период.
+// После скачивания:
+//
+// nmId -> date -> warehousePrice
 // ============================================================
 
 async function getDailyStorage(
@@ -3253,26 +3110,36 @@ async function getDailyStorage(
         `${dateFrom} -> ${dateTo}`
     );
     console.log(
+        'ОДИН ОТЧЁТ ДЛЯ ВСЕХ ТОВАРОВ'
+    );
+    console.log(
         '========================================'
     );
 
+
     // ========================================================
-    // 1. СОЗДАЁМ ОТЧЁТ
+    // СОЗДАЁМ ОТЧЁТ
     // ========================================================
 
     const createResponse =
         await fetch(
 
             `https://seller-analytics-api.wildberries.ru/api/v1/paid_storage` +
-            `?dateFrom=${dateFrom}` +
-            `&dateTo=${dateTo}`,
+            `?dateFrom=${encodeURIComponent(dateFrom)}` +
+            `&dateTo=${encodeURIComponent(dateTo)}`,
 
             {
+
+                method:
+                    'GET',
 
                 headers: {
 
                     Authorization:
-                        WB_TOKEN
+                        WB_TOKEN,
+
+                    Accept:
+                        'application/json'
 
                 },
 
@@ -3282,12 +3149,17 @@ async function getDailyStorage(
                     )
 
             }
+
         );
+
 
     const createText =
         await createResponse.text();
 
-    if (!createResponse.ok) {
+
+    if (
+        !createResponse.ok
+    ) {
 
         throw new Error(
             `WB STORAGE CREATE ${createResponse.status}: ${createText}`
@@ -3295,7 +3167,9 @@ async function getDailyStorage(
 
     }
 
+
     let createData;
+
 
     try {
 
@@ -3312,8 +3186,10 @@ async function getDailyStorage(
 
     }
 
+
     const taskId =
         createData?.data?.taskId;
+
 
     if (!taskId) {
 
@@ -3323,16 +3199,22 @@ async function getDailyStorage(
 
     }
 
+
     console.log(
         'STORAGE TASK:',
         taskId
     );
 
+
     // ========================================================
-    // 2. ЖДЁМ
+    // ЖДЁМ ГОТОВНОСТИ
+    //
+    // Не держим функцию 300 секунд.
     // ========================================================
 
-    let status = '';
+    let status =
+        '';
+
 
     for (
         let attempt = 1;
@@ -3341,8 +3223,9 @@ async function getDailyStorage(
     ) {
 
         await sleep(
-            5000
+            2000
         );
+
 
         const statusResponse =
             await fetch(
@@ -3354,7 +3237,10 @@ async function getDailyStorage(
                     headers: {
 
                         Authorization:
-                            WB_TOKEN
+                            WB_TOKEN,
+
+                        Accept:
+                            'application/json'
 
                     },
 
@@ -3364,10 +3250,13 @@ async function getDailyStorage(
                         )
 
                 }
+
             );
+
 
         const statusText =
             await statusResponse.text();
+
 
         if (
             !statusResponse.ok
@@ -3379,7 +3268,9 @@ async function getDailyStorage(
 
         }
 
+
         let statusData;
+
 
         try {
 
@@ -3396,13 +3287,16 @@ async function getDailyStorage(
 
         }
 
+
         status =
             statusData?.data?.status ||
             '';
 
+
         console.log(
             `STORAGE STATUS ${attempt}/60: ${status}`
         );
+
 
         if (
             status === 'done'
@@ -3411,6 +3305,7 @@ async function getDailyStorage(
             break;
 
         }
+
 
         if (
             status === 'error'
@@ -3424,18 +3319,20 @@ async function getDailyStorage(
 
     }
 
+
     if (
         status !== 'done'
     ) {
 
         throw new Error(
-            'WB STORAGE: отчёт не сформировался'
+            'WB STORAGE: отчёт не сформировался за 120 секунд'
         );
 
     }
 
+
     // ========================================================
-    // 3. СКАЧИВАЕМ
+    // СКАЧИВАЕМ ОТЧЁТ
     // ========================================================
 
     const downloadResponse =
@@ -3448,7 +3345,10 @@ async function getDailyStorage(
                 headers: {
 
                     Authorization:
-                        WB_TOKEN
+                        WB_TOKEN,
+
+                    Accept:
+                        'application/json'
 
                 },
 
@@ -3458,10 +3358,13 @@ async function getDailyStorage(
                     )
 
             }
+
         );
+
 
     const downloadText =
         await downloadResponse.text();
+
 
     if (
         !downloadResponse.ok
@@ -3473,7 +3376,9 @@ async function getDailyStorage(
 
     }
 
+
     let report;
+
 
     try {
 
@@ -3490,6 +3395,7 @@ async function getDailyStorage(
 
     }
 
+
     if (
         !Array.isArray(report)
     ) {
@@ -3500,11 +3406,13 @@ async function getDailyStorage(
 
     }
 
+
     // ========================================================
-    // 4. nmId × дата
+    // РАЗБИРАЕМ ЛОКАЛЬНО
     // ========================================================
 
     const result = {};
+
 
     for (
         const row of report
@@ -3515,14 +3423,18 @@ async function getDailyStorage(
                 row.nmId
             );
 
+
         if (
-            !Number.isFinite(nmId) ||
+            !Number.isFinite(
+                nmId
+            ) ||
             nmId <= 0
         ) {
 
             continue;
 
         }
+
 
         const date =
             String(
@@ -3534,20 +3446,22 @@ async function getDailyStorage(
                 10
             );
 
+
         if (!date) {
 
             continue;
 
         }
 
+
         if (
             !result[nmId]
         ) {
 
-            result[nmId] =
-                {};
+            result[nmId] = {};
 
         }
+
 
         if (
             !result[nmId][date]
@@ -3558,6 +3472,7 @@ async function getDailyStorage(
 
         }
 
+
         result[nmId][date] +=
             Number(
                 row.warehousePrice ||
@@ -3565,6 +3480,11 @@ async function getDailyStorage(
             );
 
     }
+
+
+    // ========================================================
+    // ОКРУГЛЕНИЕ
+    // ========================================================
 
     for (
         const nmId of
@@ -3588,6 +3508,7 @@ async function getDailyStorage(
 
     }
 
+
     console.log(
         'Хранение: связок nmId × день:',
         Object.values(result)
@@ -3604,8 +3525,13 @@ async function getDailyStorage(
             )
     );
 
+
     return result;
 }
+// ============================================================
+// DASHBOARD
+// ============================================================
+
 // ============================================================
 // DASHBOARD
 // ============================================================
@@ -3639,7 +3565,10 @@ async function buildDashboard() {
 
 
     // ========================================================
-    // ЗАКАЗЫ
+    // 1. ЗАКАЗЫ ЗА 30 ДНЕЙ
+    //
+    // Один запрос.
+    // Здесь формируется список всех товаров.
     // ========================================================
 
     const ordersData =
@@ -3685,18 +3614,34 @@ async function buildDashboard() {
 
 
     // ========================================================
-    // ПОЗИЦИИ
+    // 2. ПОСЛЕДНИЕ 3 ДНЯ
+    //
+    // [позавчера, вчера, сегодня]
     // ========================================================
 
-    const positions =
-        await getTodayPositions(
-            products,
-            today
+    const last3 =
+        dates.slice(
+            -3
         );
 
 
+    const financialFrom =
+        last3[0];
+
+
+    const financialTo =
+        last3[last3.length - 1];
+
+
+    console.log('');
+    console.log(
+        'ПОСЛЕДНИЕ 3 ДНЯ:',
+        last3
+    );
+
+
     // ========================================================
-    // ЦЕНЫ ПРОДАВЦА
+    // 3. NM ID
     // ========================================================
 
     const nmIds =
@@ -3708,14 +3653,113 @@ async function buildDashboard() {
         );
 
 
-    const sellerPrices =
-        await getCurrentSellerPrices(
+    // ========================================================
+    // 4. ПАРАЛЛЕЛЬНО ПОЛУЧАЕМ НЕЗАВИСИМЫЕ ДАННЫЕ
+    //
+    // Здесь каждый источник вызывается ОДИН РАЗ:
+    //
+    // - позиции
+    // - цены продавца
+    // - остатки
+    // - МойСклад
+    // - реклама за 3 дня
+    // - финансы за 3 дня
+    // - хранение за 3 дня
+    //
+    // После получения всё считается локально.
+    // ========================================================
+
+    const [
+        positions,
+        sellerPrices,
+        stocks,
+        moySkladCosts,
+        promotionStats,
+        dailyFinancials,
+        dailyStorage
+    ] = await Promise.all([
+
+        // ----------------------------------------------------
+        // Позиции
+        // ----------------------------------------------------
+
+        getTodayPositions(
+            products,
+            today
+        ),
+
+
+        // ----------------------------------------------------
+        // Текущие цены продавца
+        // ----------------------------------------------------
+
+        getCurrentSellerPrices(
             nmIds
-        );
+        ),
+
+
+        // ----------------------------------------------------
+        // Остатки за 30 дней
+        // ----------------------------------------------------
+
+        getStocks(
+            dateFrom,
+            today
+        ),
+
+
+        // ----------------------------------------------------
+        // Себестоимость МойСклад
+        //
+        // Один проход по всем уникальным code.
+        // ----------------------------------------------------
+
+        getMoySkladCosts(
+            products
+        ),
+
+
+        // ----------------------------------------------------
+        // Реклама за 3 дня
+        // ----------------------------------------------------
+
+        getPromotionStats(
+            financialFrom,
+            financialTo
+        ),
+
+
+        // ----------------------------------------------------
+        // Финансовый отчёт за 3 дня
+        //
+        // ОДИН отчёт для ВСЕХ товаров.
+        // ----------------------------------------------------
+
+        getDailyFinancials(
+            financialFrom,
+            financialTo
+        ),
+
+
+        // ----------------------------------------------------
+        // Хранение за 3 дня
+        //
+        // ОДИН отчёт для ВСЕХ товаров.
+        // ----------------------------------------------------
+
+        getDailyStorage(
+            financialFrom,
+            financialTo
+        )
+
+    ]);
 
 
     // ========================================================
-    // СЕГОДНЯ
+    // 5. ЦЕНЫ СЕГОДНЯ
+    //
+    // Здесь данные по buyerPrice / sellerPrice / spp
+    // дополняются только для сегодняшнего дня.
     // ========================================================
 
     await fillTodayPrices(
@@ -3726,15 +3770,8 @@ async function buildDashboard() {
 
 
     // ========================================================
-    // ОСТАТКИ
+    // 6. META ИЗ ОТЧЁТА ОСТАТКОВ
     // ========================================================
-
-    const stocks =
-        await getStocks(
-            dateFrom,
-            today
-        );
-
 
     const meta =
         stocks._meta ||
@@ -3742,11 +3779,14 @@ async function buildDashboard() {
 
 
     // ========================================================
-    // ВАЖНО:
-    // article уже пришёл из WB supplierArticle.
+    // 7. ДОПОЛНЯЕМ НАЗВАНИЕ
     //
-    // Если его нет — тогда берём VendorCode из остатков.
-    // Но существующий WB article НЕ перезаписываем.
+    // ВАЖНО:
+    //
+    // Существующий article из WB НЕ перезаписываем.
+    //
+    // Если article отсутствует,
+    // тогда используем VendorCode из остатков.
     // ========================================================
 
     for (
@@ -3783,68 +3823,7 @@ async function buildDashboard() {
 
 
     // ========================================================
-    // СЕБЕСТОИМОСТЬ МОЙСКЛАД
-    //
-    // ПОСЛЕДНИМ ЭТАПОМ ПЕРЕД ФОРМИРОВАНИЕМ RESULT.
-    // ========================================================
-
-    const moySkladCosts =
-        await getMoySkladCosts(
-            products
-        );
-// ========================================================
-// ФИНАНСЫ ЗА ПОЗАВЧЕРА → СЕГОДНЯ
-// ========================================================
-
-const financialFrom =
-    addDays(
-        today,
-        -2
-    );
-
-const financialTo =
-    today;
-
-const dailyFinancials =
-    await getDailyFinancials(
-        financialFrom,
-        financialTo
-    );
-
-
-// ========================================================
-// ХРАНЕНИЕ ЗА ПОЗАВЧЕРА → СЕГОДНЯ
-// ========================================================
-
-const dailyStorage =
-    await getDailyStorage(
-        financialFrom,
-        financialTo
-    );
-
-    // ========================================================
-    // ПОСЛЕДНИЕ 3 ДНЯ
-    // ========================================================
-
-    const last3 =
-        dates.slice(
-            -3
-        );
-
-
-    // ========================================================
-    // РЕКЛАМА
-    // ========================================================
-
-    const promotionStats =
-        await getPromotionStats(
-            last3[0],
-            last3[last3.length - 1]
-        );
-
-
-    // ========================================================
-    // ПОСЛЕДНИЕ 7 ДНЕЙ
+    // 8. ПОСЛЕДНИЕ 7 ДНЕЙ
     // ========================================================
 
     const last7 =
@@ -3857,7 +3836,7 @@ const dailyStorage =
 
 
     // ========================================================
-    // ТОВАРЫ
+    // 9. ФОРМИРУЕМ ГОТОВЫЕ ТОВАРЫ
     // ========================================================
 
     for (
@@ -3875,9 +3854,9 @@ const dailyStorage =
             {};
 
 
-        // ----------------------------------------------------
-        // ПРОДАЖИ 7 ДНЕЙ
-        // ----------------------------------------------------
+        // ====================================================
+        // ПРОДАЖИ ЗА 7 ДНЕЙ
+        // ====================================================
 
         const sales7 =
             last7.reduce(
@@ -3904,9 +3883,9 @@ const dailyStorage =
             7;
 
 
-        // ----------------------------------------------------
-        // ОСТАТОК
-        // ----------------------------------------------------
+        // ====================================================
+        // ОСТАТОК СЕГОДНЯ
+        // ====================================================
 
         const stockToday =
             Number(
@@ -3915,9 +3894,9 @@ const dailyStorage =
             );
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // ХВАТИТ НА
-        // ----------------------------------------------------
+        // ====================================================
 
         const daysLeft =
             averageSales7 > 0
@@ -3928,20 +3907,18 @@ const dailyStorage =
                 : null;
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // ПОЗИЦИЯ
-        // ----------------------------------------------------
+        // ====================================================
 
         const positionToday =
             positions[nmId] ??
             null;
 
 
-        // ----------------------------------------------------
-        // СЕБЕСТОИМОСТЬ
-        //
-        // ОДНА ВЕЛИЧИНА НА ТОВАР.
-        // ----------------------------------------------------
+        // ====================================================
+        // АРТИКУЛ
+        // ====================================================
 
         const article =
             String(
@@ -3950,18 +3927,27 @@ const dailyStorage =
             ).trim();
 
 
+        // ====================================================
+        // СЕБЕСТОИМОСТЬ
+        //
+        // ОДНА ОБЩАЯ ВЕЛИЧИНА НА ТОВАР.
+        // Получена из МойСклада по code.
+        // ====================================================
+
         const cost =
             article &&
             moySkladCosts[article] != null
 
-                ? moySkladCosts[article]
+                ? Number(
+                    moySkladCosts[article]
+                )
 
                 : null;
 
 
-        // ----------------------------------------------------
+        // ====================================================
         // ПОСЛЕДНИЕ 3 ДНЯ
-        // ----------------------------------------------------
+        // ====================================================
 
         const days =
             last3.map(
@@ -3971,6 +3957,10 @@ const dailyStorage =
                         product.days[date] ||
                         {};
 
+
+                    // =================================================
+                    // РЕКЛАМА
+                    // =================================================
 
                     const advertising =
                         promotionStats[nmId]?.[date] ||
@@ -3994,333 +3984,384 @@ const dailyStorage =
                         };
 
 
+                    // =================================================
+                    // ФИНАНСЫ
+                    //
+                    // ВАЖНО:
+                    //
+                    // НЕ смотрим на дату.
+                    // Смотрим, есть ли фактические данные
+                    // финансового отчёта.
+                    //
+                    // Если WB ещё не отдал данные за сегодня:
+                    // финансовые поля = null.
+                    // =================================================
+
+                    const finance =
+                        dailyFinancials[nmId]?.[date] ??
+                        null;
+
+
+                    let financial;
+
+
+                    // =================================================
+                    // ФИНАНСОВЫХ ДАННЫХ НЕТ
+                    // =================================================
+
+                    if (
+                        !finance
+                    ) {
+
+                        financial = {
+
+                            forPay:
+                                null,
+
+                            logistics:
+                                null,
+
+                            storage:
+                                null,
+
+                            profit:
+                                null,
+
+                            retailSales:
+                                null,
+
+                            costTotal:
+                                null,
+
+                            profitability:
+                                null,
+
+                            margin:
+                                null
+
+                        };
+
+                    } else {
+
+                        // =============================================
+                        // ХРАНЕНИЕ
+                        // =============================================
+
+                        const storage =
+                            Number(
+                                dailyStorage[nmId]?.[date] ||
+                                0
+                            );
+
+
+                        // =============================================
+                        // WB ПРОДВИЖЕНИЕ
+                        //
+                        // Это уже advertising.spend.
+                        // Дополнительного запроса нет.
+                        // =============================================
+
+                        const wbPromotion =
+                            Number(
+                                advertising.spend ||
+                                0
+                            );
+
+
+                        // =============================================
+                        // ПРИБЫЛЬ
+                        //
+                        // К перечислению
+                        // − Логистика
+                        // − Хранение
+                        // − WB Продвижение
+                        // =============================================
+
+                        const profit =
+                            Number(
+                                (
+                                    Number(
+                                        finance.forPay ||
+                                        0
+                                    )
+                                    -
+                                    Number(
+                                        finance.logistics ||
+                                        0
+                                    )
+                                    -
+                                    storage
+                                    -
+                                    wbPromotion
+                                ).toFixed(2)
+                            );
+
+
+                        // =============================================
+                        // ПРОДАЖИ ЭТОГО ДНЯ
+                        // =============================================
+
+                        const sales =
+                            Number(
+                                d.sales ||
+                                0
+                            );
+
+
+                        // =============================================
+                        // ОБЩАЯ СЕБЕСТОИМОСТЬ
+                        //
+                        // Себестоимость единицы
+                        // × количество продаж
+                        // =============================================
+
+                        const costTotal =
+                            cost != null
+
+                                ? Number(
+                                    (
+                                        cost *
+                                        sales
+                                    ).toFixed(2)
+                                )
+
+                                : null;
+
+
+                        // =============================================
+                        // РЕНТАБЕЛЬНОСТЬ
+                        //
+                        // Прибыль /
+                        // Себестоимость проданного × 100
+                        // =============================================
+
+                        const profitability =
+                            costTotal != null &&
+                            costTotal > 0
+
+                                ? Number(
+                                    (
+                                        profit /
+                                        costTotal *
+                                        100
+                                    ).toFixed(2)
+                                )
+
+                                : null;
+
+
+                        // =============================================
+                        // РОЗНИЧНЫЕ ПРОДАЖИ
+                        // =============================================
+
+                        const retailSales =
+                            Number(
+                                finance.retailSales ||
+                                0
+                            );
+
+
+                        // =============================================
+                        // МАРЖА
+                        //
+                        // Прибыль /
+                        // Цена розничная × 100
+                        // =============================================
+
+                        const margin =
+                            retailSales > 0
+
+                                ? Number(
+                                    (
+                                        profit /
+                                        retailSales *
+                                        100
+                                    ).toFixed(2)
+                                )
+
+                                : null;
+
+
+                        financial = {
+
+                            forPay:
+                                Number(
+                                    finance.forPay ||
+                                    0
+                                ),
+
+                            logistics:
+                                Number(
+                                    finance.logistics ||
+                                    0
+                                ),
+
+                            storage,
+
+                            profit,
+
+                            retailSales,
+
+                            costTotal,
+
+                            profitability,
+
+                            margin
+
+                        };
+
+                    }
+
+
+                    // =================================================
+                    // ГОТОВЫЙ ДЕНЬ
+                    // =================================================
+
                     return {
 
-    date,
+                        date,
 
 
-    buyerPrice:
-        d.buyerPrice,
+                        // ---------------------------------------------
+                        // ЦЕНЫ
+                        // ---------------------------------------------
+
+                        buyerPrice:
+                            d.buyerPrice,
+
+                        spp:
+                            d.spp,
+
+                        sellerPrice:
+                            d.sellerPrice,
 
 
-    spp:
-        d.spp,
+                        // ---------------------------------------------
+                        // ПРОДАЖИ
+                        // ---------------------------------------------
+
+                        sales:
+                            Number(
+                                d.sales ||
+                                0
+                            ),
 
 
-    sellerPrice:
-        d.sellerPrice,
+                        // ---------------------------------------------
+                        // РЕКЛАМА
+                        // ---------------------------------------------
+
+                        advertising: {
+
+                            views:
+                                Number(
+                                    advertising.views ||
+                                    0
+                                ),
+
+                            clicks:
+                                Number(
+                                    advertising.clicks ||
+                                    0
+                                ),
+
+                            atbs:
+                                Number(
+                                    advertising.atbs ||
+                                    0
+                                ),
+
+                            cpm:
+                                Number(
+                                    advertising.cpm ||
+                                    0
+                                ),
+
+                            spend:
+                                Number(
+                                    advertising.spend ||
+                                    0
+                                )
+
+                        },
 
 
-    sales:
-        Number(
-            d.sales ||
-            0
-        ),
+                        // ---------------------------------------------
+                        // ФИНАНСЫ
+                        // ---------------------------------------------
+
+                        financial,
 
 
-    // =================================================
-    // РЕКЛАМА
-    // =================================================
+                        // ---------------------------------------------
+                        // ИСТОЧНИК ЦЕНЫ ПОКУПАТЕЛЯ
+                        // ---------------------------------------------
 
-    advertising: {
+                        buyerPriceSource:
 
-        views:
-            Number(
-                advertising.views ||
-                0
-            ),
+                            date === today
 
-        clicks:
-            Number(
-                advertising.clicks ||
-                0
-            ),
+                                ? 'current-api'
 
-        atbs:
-            Number(
-                advertising.atbs ||
-                0
-            ),
-
-        cpm:
-            Number(
-                advertising.cpm ||
-                0
-            ),
-
-        spend:
-            Number(
-                advertising.spend ||
-                0
-            )
-
-    },
+                                : (
+                                    d.buyerPrice == null
+                                        ? null
+                                        : 'order'
+                                ),
 
 
-    // =================================================
-    // ФИНАНСЫ
-    // =================================================
+                        // ---------------------------------------------
+                        // ИСТОЧНИК ЦЕНЫ ПРОДАВЦА
+                        // ---------------------------------------------
 
-    financial:
+                        sellerPriceSource:
 
-        date === today
+                            date === today
 
-            ? {
+                                ? 'current-api'
 
-                forPay:
-                    null,
+                                : (
+                                    d.sellerPrice == null
+                                        ? null
+                                        : 'order'
+                                ),
 
-                logistics:
-                    null,
 
-                storage:
-                    null,
+                        // ---------------------------------------------
+                        // ИСТОЧНИК СПП
+                        // ---------------------------------------------
 
-                profit:
-                    null,
+                        sppSource:
 
-                retailSales:
-                    null,
+                            date === today
 
-                costTotal:
-                    null,
+                                ? 'calculated'
 
-                profitability:
-                    null,
-
-                margin:
-                    null
-
-            }
-
-            : (() => {
-
-                const finance =
-                    dailyFinancials[nmId]?.[date] || {
-
-                        forPay:
-                            0,
-
-                        logistics:
-                            0,
-
-                        retailSales:
-                            0,
-
-                        quantity:
-                            0
+                                : (
+                                    d.spp == null
+                                        ? null
+                                        : 'order'
+                                )
 
                     };
-
-
-                const storage =
-                    Number(
-                        dailyStorage[nmId]?.[date] ||
-                        0
-                    );
-
-
-                // WB Продвижение =
-                // уже существующие Затраты
-
-                const wbPromotion =
-                    Number(
-                        advertising.spend ||
-                        0
-                    );
-
-
-                // -----------------------------------------
-                // ПРИБЫЛЬ
-                //
-                // К перечислению
-                // − Логистика
-                // − Хранение
-                // − WB Продвижение
-                // -----------------------------------------
-
-                const profit =
-                    Number(
-                        (
-                            Number(
-                                finance.forPay ||
-                                0
-                            )
-                            -
-                            Number(
-                                finance.logistics ||
-                                0
-                            )
-                            -
-                            storage
-                            -
-                            wbPromotion
-                        ).toFixed(2)
-                    );
-
-
-                // -----------------------------------------
-                // СЕБЕСТОИМОСТЬ ПРОДАННОГО
-                // -----------------------------------------
-
-                const sales =
-                    Number(
-                        d.sales ||
-                        0
-                    );
-
-
-                const costTotal =
-                    Number(
-                        (
-                            Number(
-                                cost ||
-                                0
-                            ) *
-                            sales
-                        ).toFixed(2)
-                    );
-
-
-                // -----------------------------------------
-                // РЕНТАБЕЛЬНОСТЬ
-                //
-                // Прибыль /
-                // Себестоимость проданного × 100
-                // -----------------------------------------
-
-                const profitability =
-                    costTotal > 0
-
-                        ? Number(
-                            (
-                                profit /
-                                costTotal *
-                                100
-                            ).toFixed(2)
-                        )
-
-                        : null;
-
-
-                // -----------------------------------------
-                // МАРЖА
-                //
-                // Прибыль /
-                // Цена розничная × 100
-                // -----------------------------------------
-
-                const retailSales =
-                    Number(
-                        finance.retailSales ||
-                        0
-                    );
-
-
-                const margin =
-                    retailSales > 0
-
-                        ? Number(
-                            (
-                                profit /
-                                retailSales *
-                                100
-                            ).toFixed(2)
-                        )
-
-                        : null;
-
-
-                return {
-
-                    forPay:
-                        Number(
-                            finance.forPay ||
-                            0
-                        ),
-
-                    logistics:
-                        Number(
-                            finance.logistics ||
-                            0
-                        ),
-
-                    storage,
-
-                    profit,
-
-                    retailSales,
-
-                    costTotal,
-
-                    profitability,
-
-                    margin
-
-                };
-
-            })(),
-
-
-    // =================================================
-    // ИСТОЧНИКИ ЦЕН
-    // =================================================
-
-    buyerPriceSource:
-
-        date === today
-
-            ? 'current-api'
-
-            : (
-                d.buyerPrice == null
-                    ? null
-                    : 'order'
-            ),
-
-
-    sellerPriceSource:
-
-        date === today
-
-            ? 'current-api'
-
-            : (
-                d.sellerPrice == null
-                    ? null
-                    : 'order'
-            ),
-
-
-    sppSource:
-
-        date === today
-
-            ? 'calculated'
-
-            : (
-                d.spp == null
-                    ? null
-                    : 'order'
-            )
-
-};
 
                 }
             );
 
 
-        // ----------------------------------------------------
-        // ГОТОВАЯ СТРОКА ТОВАРА
-        // ----------------------------------------------------
+        // ====================================================
+        // ГОТОВАЯ СТРОКА
+        // ====================================================
 
         result.push({
 
             nmId,
 
+
             article:
                 product.article ||
                 '',
+
 
             name:
                 product.name ||
@@ -4354,9 +4395,9 @@ const dailyStorage =
             positionToday,
 
 
-            // ================================================
-            // СЕБЕСТОИМОСТЬ
-            // ================================================
+            // =================================================
+            // ОБЩАЯ СЕБЕСТОИМОСТЬ ЕДИНИЦЫ
+            // =================================================
 
             cost,
 
@@ -4368,11 +4409,14 @@ const dailyStorage =
     }
 
 
+    // ========================================================
+    // РЕЗУЛЬТАТ
+    // ========================================================
+
     return {
 
         updatedAt:
             new Date().toISOString(),
-
 
         period: {
 
@@ -4383,7 +4427,6 @@ const dailyStorage =
                 today
 
         },
-
 
         products:
             result
