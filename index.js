@@ -46,7 +46,7 @@ if (!WB_TOKEN) {
 // МОЙСКЛАД
 // ============================================================
 
-const MS_TOKEN = process.env.MS_TOKEN;
+const MS_TOKEN = '562d927aad09e55f49bed5ebd3751c7ccfd19a23';
 
 if (!MS_TOKEN) {
 
