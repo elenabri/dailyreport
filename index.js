@@ -2605,14 +2605,14 @@ last3.map(
                             : 'order'
                     )
 
-        };
+                };
 
-    }
+    );
 
     const article =
-    String(
-        product.article || ''
-    ).trim();
+        String(
+            product.article || ''
+        ).trim();
 
 const cost =
     article &&
