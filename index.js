@@ -1304,18 +1304,11 @@ for (
     ) {
 
         products[nmId] = {
-
-            nmId,
-
-                article:
-        String(
-            row.supplierArticle || ''
-        ).trim()
-
-            name: '',
-
-            days: {}
-        };
+    nmId,
+    article: String(row.supplierArticle || '').trim(),
+    name: '',
+    days: {}
+};
     }
 
     if (
