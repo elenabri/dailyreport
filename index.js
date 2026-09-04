@@ -2028,10 +2028,16 @@ return buildStocks(
 // ============================================================
 
 async function getMoySkladCosts(products) {
+
     const result = {};
 
-    // Берём артикулы из уже сформированной таблицы WB.
-    // В МойСклад этот артикул соответствует полю code.
+    const RWB_AGENT_ID =
+        'dc169d6f-ed15-11ef-0a80-1a4e002e43ed';
+
+    const RWB_HREF =
+        `https://api.moysklad.ru/api/remap/1.2/entity/counterparty/${RWB_AGENT_ID}`;
+
+    // Берём уникальные коды товаров из WB
     const uniqueCodes = [
         ...new Set(
             products
@@ -2043,79 +2049,36 @@ async function getMoySkladCosts(products) {
     ];
 
     console.log(
-        `МойСклад: ищем себестоимость для ${uniqueCodes.length} артикулов`
+        `МойСклад: ищем цену последней отгрузки РВБ для ${uniqueCodes.length} товаров`
     );
 
     for (const code of uniqueCodes) {
+
         try {
+
             console.log(
                 `МойСклад: ищу товар по code = ${code}`
             );
 
-            const url =
-                'https://api.moysklad.ru/api/remap/1.2/entity/product' +
-                `?filter=code=${encodeURIComponent(code)}` +
-                '&limit=1';
+            // =====================================================
+            // 1. ИЩЕМ ТОВАР ПО CODE
+            // =====================================================
 
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${MS_TOKEN}`,
-                    'Accept': 'application/json;charset=utf-8'
-                },
-                signal: AbortSignal.timeout(60000)
-            });
+            const productResponse = await api.get(
+                '/entity/product',
+                {
+                    params: {
+                        filter: `code=${code}`,
+                        limit: 1
+                    }
+                }
+            );
 
-            const text = await response.text();
+            const productsMS =
+                productResponse.data.rows || [];
 
-            // --------------------------------------------------
-            // ОШИБКА HTTP
-            // --------------------------------------------------
+            if (!productsMS.length) {
 
-            if (!response.ok) {
-                console.error(
-                    `МойСклад ${code}: HTTP ${response.status}`
-                );
-
-                console.error(
-                    text.slice(0, 1000)
-                );
-
-                result[code] = null;
-                continue;
-            }
-
-            // --------------------------------------------------
-            // РАЗБИРАЕМ JSON
-            // --------------------------------------------------
-
-            let data;
-
-            try {
-                data = JSON.parse(text);
-            } catch (error) {
-                console.error(
-                    `МойСклад ${code}: ответ не является JSON`
-                );
-
-                console.error(
-                    text.slice(0, 1000)
-                );
-
-                result[code] = null;
-                continue;
-            }
-
-            // --------------------------------------------------
-            // ИЩЕМ ТОВАР
-            // --------------------------------------------------
-
-            const rows =
-                Array.isArray(data?.rows)
-                    ? data.rows
-                    : [];
-
-            if (!rows.length) {
                 console.log(
                     `МойСклад: товар не найден: ${code}`
                 );
@@ -2124,86 +2087,134 @@ async function getMoySkladCosts(products) {
                 continue;
             }
 
-            const msProduct = rows[0];
+            const product = productsMS[0];
+
+            const PRODUCT_HREF =
+                product.meta?.href ||
+                `https://api.moysklad.ru/api/remap/1.2/entity/product/${product.id}`;
 
             console.log(
-                `МойСклад: товар найден: ${code} → ${msProduct.name || ''}`
+                `МойСклад: товар найден: ${code} → ${product.name || ''}`
             );
 
-            // --------------------------------------------------
-            // SALE PRICES
-            // --------------------------------------------------
+            // =====================================================
+            // 2. ИЩЕМ ПОСЛЕДНЮЮ ОТГРУЗКУ РВБ
+            // =====================================================
 
-            const salePrices =
-                Array.isArray(msProduct.salePrices)
-                    ? msProduct.salePrices
-                    : [];
-
-            console.log(
-                `МойСклад: ${code} — типов цен: ${salePrices.length}`
-            );
-
-            // --------------------------------------------------
-            // ИЩЕМ "СЕБЕСТОИМОСТЬ БЕЗ НДС"
-            // --------------------------------------------------
-
-            let cost = null;
-
-            for (const price of salePrices) {
-                const priceTypeId =
-                    price?.priceType?.id || '';
-
-                const priceTypeName =
-                    String(
-                        price?.priceType?.name ||
-                        price?.priceType ||
-                        ''
-                    ).trim();
-
-                if (
-                    priceTypeId === MS_COST_PRICE_TYPE_ID ||
-                    priceTypeName === 'Себестоимость без НДС'
-                ) {
-                    if (
-                        price?.value !== null &&
-                        price?.value !== undefined &&
-                        Number.isFinite(
-                            Number(price.value)
-                        )
-                    ) {
-                        // МойСклад возвращает value в копейках.
-                        cost =
-                            Number(price.value) / 100;
+            const demandResponse = await api.get(
+                '/entity/demand',
+                {
+                    params: {
+                        filter:
+                            `agent=${RWB_HREF};assortment=${PRODUCT_HREF}`,
+                        order: 'moment,desc',
+                        limit: 1
                     }
-
-                    break;
                 }
-            }
+            );
 
-            // --------------------------------------------------
-            // СОХРАНЯЕМ РЕЗУЛЬТАТ
-            // --------------------------------------------------
+            const demands =
+                demandResponse.data.rows || [];
 
-            if (
-                cost !== null &&
-                Number.isFinite(cost)
-            ) {
-                result[code] = cost;
+            if (!demands.length) {
 
                 console.log(
-                    `МойСклад: ${code} → себестоимость ${cost} ₽`
+                    `МойСклад: отгрузка РВБ не найдена: ${code}`
                 );
+
+                result[code] = null;
+                continue;
+            }
+
+            const demand = demands[0];
+
+            console.log(
+                `МойСклад: последняя отгрузка ${code} → ${demand.name || demand.id}`
+            );
+
+            // =====================================================
+            // 3. ПОЛУЧАЕМ ПОЗИЦИИ ЭТОЙ ОТГРУЗКИ
+            // =====================================================
+
+            const demandResponseFull =
+                await api.get(
+                    `/entity/demand/${demand.id}`,
+                    {
+                        params: {
+                            expand:
+                                'positions,positions.assortment'
+                        }
+                    }
+                );
+
+            const positions =
+                demandResponseFull.data.positions?.rows ||
+                demandResponseFull.data.positions ||
+                [];
+
+            // =====================================================
+            // 4. НАХОДИМ НУЖНУЮ ПОЗИЦИЮ
+            // =====================================================
+
+            const position =
+                positions.find(pos => {
+
+                    const assortment =
+                        pos.assortment;
+
+                    return (
+                        assortment &&
+                        (
+                            assortment.id === product.id ||
+                            assortment.meta?.href === PRODUCT_HREF
+                        )
+                    );
+                });
+
+            if (!position) {
+
+                console.log(
+                    `МойСклад: позиция товара не найдена в отгрузке: ${code}`
+                );
+
+                result[code] = null;
+                continue;
+            }
+
+            // =====================================================
+            // 5. БЕРЁМ PRICE ИЗ ПОЗИЦИИ
+            // =====================================================
+
+            const salePrice =
+                position.price != null
+                    ? Number(position.price) / 100
+                    : null;
+
+            if (
+                salePrice !== null &&
+                Number.isFinite(salePrice)
+            ) {
+
+                result[code] = salePrice;
+
+                console.log(
+                    `МойСклад: ${code} → цена последней отгрузки РВБ = ${salePrice} ₽`
+                );
+
             } else {
+
                 result[code] = null;
 
                 console.log(
-                    `МойСклад: ${code} → себестоимость не найдена`
+                    `МойСклад: ${code} → price отсутствует`
                 );
             }
 
         } catch (error) {
+
             console.error(
                 `МойСклад: ошибка для ${code}:`,
+                error.response?.data ||
                 error.message
             );
 
@@ -2212,39 +2223,12 @@ async function getMoySkladCosts(products) {
     }
 
     console.log(
-        'МойСклад: итоговые себестоимости:',
+        'МойСклад: итоговые цены:',
         JSON.stringify(result, null, 2)
     );
 
     return result;
 }
-// ============================================================
-// DASHBOARD
-// ============================================================
-async function buildDashboard() {
-
-const today =
-    getMoscowToday();
-
-const dateFrom =
-    addDays(
-        today,
-        -29
-    );
-
-console.log('');
-console.log(
-    '========================================'
-);
-console.log(
-    'WB DASHBOARD'
-);
-console.log(
-    `${dateFrom} -> ${today}`
-);
-console.log(
-    '========================================'
-);
 
 
 // ========================================================
