@@ -2030,6 +2030,8 @@ return buildStocks(
 async function getMoySkladCosts(products) {
     const result = {};
 
+    // Берём артикулы уже готовой таблицы WB.
+    // В МойСклад этот артикул = code товара.
     const uniqueCodes = [
         ...new Set(
             products
@@ -2041,7 +2043,7 @@ async function getMoySkladCosts(products) {
     ];
 
     console.log(
-        `МойСклад: ищем себестоимость для ${uniqueCodes.length} артикулов`
+        `\nМойСклад: ищем себестоимость для ${uniqueCodes.length} артикулов`
     );
 
     for (const code of uniqueCodes) {
@@ -2049,7 +2051,7 @@ async function getMoySkladCosts(products) {
         try {
 
             console.log(
-                `МойСклад: ищу товар по code: ${code}`
+                `МойСклад: ищу товар по code = ${code}`
             );
 
             const url =
@@ -2070,11 +2072,18 @@ async function getMoySkladCosts(products) {
 
             const text = await response.text();
 
+            // ----------------------------------------------------
+            // ОШИБКА HTTP
+            // ----------------------------------------------------
+
             if (!response.ok) {
 
                 console.error(
-                    `МойСклад ${code}: HTTP ${response.status}`,
-                    text.slice(0, 500)
+                    `МойСклад: ошибка ${code} — HTTP ${response.status}`
+                );
+
+                console.error(
+                    text.slice(0, 1000)
                 );
 
                 result[code] = null;
@@ -2082,7 +2091,34 @@ async function getMoySkladCosts(products) {
                 continue;
             }
 
-            const data = JSON.parse(text);
+            // ----------------------------------------------------
+            // JSON
+            // ----------------------------------------------------
+
+            let data;
+
+            try {
+
+                data = JSON.parse(text);
+
+            } catch (error) {
+
+                console.error(
+                    `МойСклад: ${code} — сервер вернул не JSON`
+                );
+
+                console.error(
+                    text.slice(0, 1000)
+                );
+
+                result[code] = null;
+
+                continue;
+            }
+
+            // ----------------------------------------------------
+            // ТОВАР
+            // ----------------------------------------------------
 
             const rows =
                 Array.isArray(data?.rows)
@@ -2092,7 +2128,7 @@ async function getMoySkladCosts(products) {
             if (!rows.length) {
 
                 console.log(
-                    `МойСклад: товар не найден: ${code}`
+                    `МойСклад: товар НЕ найден: ${code}`
                 );
 
                 result[code] = null;
@@ -2102,14 +2138,45 @@ async function getMoySkladCosts(products) {
 
             const msProduct = rows[0];
 
+            console.log(
+                `МойСклад: товар найден: ${code} → ${msProduct.name || ''}`
+            );
+
+            // ----------------------------------------------------
+            // SALE PRICES
+            // ----------------------------------------------------
+
+            const salePrices =
+                Array.isArray(msProduct.salePrices)
+                    ? msProduct.salePrices
+                    : [];
+
+            console.log(
+                `МойСклад: ${code} — найдено типов цен: ${salePrices.length}`
+            );
+
+            // Показываем цены в логах,
+            // чтобы точно видеть, что вернул API.
+            console.log(
+                `МойСклад: salePrices для ${code}:`,
+                JSON.stringify(
+                    salePrices,
+                    null,
+                    2
+                )
+            );
+
+            // ----------------------------------------------------
+            // ИЩЕМ "СЕБЕСТОИМОСТЬ БЕЗ НДС"
+            // ----------------------------------------------------
+
             let cost = null;
 
-            for (
-                const price of msProduct.salePrices || []
-            ) {
+            for (const price of salePrices) {
 
                 const priceTypeId =
-                    price?.priceType?.id || '';
+                    price?.priceType?.id ||
+                    '';
 
                 const priceTypeName =
                     String(
@@ -2118,18 +2185,30 @@ async function getMoySkladCosts(products) {
                         ''
                     ).trim();
 
+                console.log(
+                    `МойСклад: ${code} — тип цены:`,
+                    {
+                        id: priceTypeId,
+                        name: priceTypeName,
+                        value: price?.value
+                    }
+                );
+
                 if (
                     priceTypeId === MS_COST_PRICE_TYPE_ID ||
                     priceTypeName === 'Себестоимость без НДС'
                 ) {
 
                     if (
-                        price?.value != null &&
+                        price?.value !== null &&
+                        price?.value !== undefined &&
                         Number.isFinite(
                             Number(price.value)
                         )
                     ) {
 
+                        // В API МойСклад стоимость хранится
+                        // в копейках.
                         cost =
                             Number(price.value) / 100;
                     }
@@ -2138,15 +2217,19 @@ async function getMoySkladCosts(products) {
                 }
             }
 
+            // ----------------------------------------------------
+            // РЕЗУЛЬТАТ
+            // ----------------------------------------------------
+
             if (
-                cost != null &&
+                cost !== null &&
                 Number.isFinite(cost)
             ) {
 
                 result[code] = cost;
 
                 console.log(
-                    `МойСклад: ${code} → ${cost} ₽`
+                    `МойСклад: ${code} → СЕБЕСТОИМОСТЬ = ${cost} ₽`
                 );
 
             } else {
@@ -2154,20 +2237,36 @@ async function getMoySkladCosts(products) {
                 result[code] = null;
 
                 console.log(
-                    `МойСклад: ${code} → себестоимость не найдена`
+                    `МойСклад: ${code} → СЕБЕСТОИМОСТЬ НЕ НАЙДЕНА`
                 );
             }
 
         } catch (error) {
 
             console.error(
-                `МойСклад: ошибка для ${code}:`,
+                `МойСклад: ошибка при поиске ${code}:`,
                 error.message
             );
 
             result[code] = null;
         }
     }
+
+    // --------------------------------------------------------
+    // ФИНАЛЬНЫЙ РЕЗУЛЬТАТ
+    // --------------------------------------------------------
+
+    console.log(
+        '\nМойСклад: итоговые себестоимости:'
+    );
+
+    console.log(
+        JSON.stringify(
+            result,
+            null,
+            2
+        )
+    );
 
     return result;
 }
