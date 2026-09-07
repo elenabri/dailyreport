@@ -2785,43 +2785,24 @@ async function getMoySkladCosts(
 // ============================================================
 // ФИНАНСОВЫЕ ДАННЫЕ ПО ДНЯМ
 //
-// Источник:
-// statistics-api.wildberries.ru
-// /api/v5/supplier/reportDetailByPeriod
+// Новый WB Finance API:
+//
+// POST
+// https://finance-api.wildberries.ru/api/finance/v1/sales-reports/detailed
 //
 // Один запрос за весь период.
+// Если строк ровно 100000 — продолжаем через rrdId.
+//
 // После получения report API больше не вызываем.
 //
 // Результат:
 //
-// dailyFinancials[nmId][date] = {
+// result[nmId][date] = {
 //
 //     forPay:       К перечислению,
 //     logistics:    Логистика,
-//     retailPrice:  Цена розничная
+//     retailSales:  Розничная выручка
 //
-// }
-//
-// ============================================================
-
-// ============================================================
-// ФИНАНСЫ ПО ДНЯМ
-//
-// Новый WB Finance API:
-//
-// POST
-// https://finance-api.wildberries.ru/api/finance/v1/sales-reports/detailed/{reportId}
-//
-// Получаем весь отчёт по reportId.
-// Если строк 100000 — продолжаем по rrdId.
-// После получения всех строк вся обработка локальная.
-//
-// Результат:
-//
-// result[nmId][date] = {
-//     forPay,
-//     logistics,
-//     retailPrice
 // }
 // ============================================================
 
@@ -2831,83 +2812,180 @@ async function getDailyFinancials(
 ) {
 
     console.log('');
-    console.log('========================================');
-    console.log('WB FINANCE DAILY');
-    console.log(`${dateFrom} -> ${dateTo}`);
-    console.log('========================================');
+    console.log(
+        '========================================'
+    );
+    console.log(
+        'WB FINANCE DAILY'
+    );
+    console.log(
+        `${dateFrom} -> ${dateTo}`
+    );
+    console.log(
+        'ОДИН ОТЧЁТ ДЛЯ ВСЕХ ТОВАРОВ'
+    );
+    console.log(
+        '========================================'
+    );
 
-    let allRows = [];
+
+    // ========================================================
+    // ВСЕ СТРОКИ ОТЧЁТА
+    // ========================================================
+
+    const allRows = [];
+
     let rrdId = 0;
+
     let page = 0;
+
+
+    // ========================================================
+    // ПОЛУЧЕНИЕ ОТЧЁТА
+    // ========================================================
 
     while (true) {
 
         page++;
 
+
         console.log(
             `WB FINANCE DAILY ${page}: rrdId=${rrdId}`
         );
 
-        const response = await fetch(
-            'https://finance-api.wildberries.ru/api/finance/v1/sales-reports/detailed',
-            {
-                method: 'POST',
 
-                headers: {
-                    Authorization: WB_TOKEN,
-                    'Content-Type': 'application/json'
-                },
+        const response =
+            await fetch(
+                'https://finance-api.wildberries.ru/api/finance/v1/sales-reports/detailed',
+                {
 
-                body: JSON.stringify({
-                    dateFrom,
-                    dateTo,
-                    limit: 100000,
-                    rrdId,
-                    period: 'daily'
-                }),
+                    method:
+                        'POST',
 
-                signal:
-                    AbortSignal.timeout(60000)
-            }
-        );
+                    headers: {
+
+                        Authorization:
+                            WB_TOKEN,
+
+                        'Content-Type':
+                            'application/json',
+
+                        Accept:
+                            'application/json'
+
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            dateFrom:
+                                dateFrom,
+
+                            dateTo:
+                                dateTo,
+
+                            limit:
+                                100000,
+
+                            rrdId:
+                                rrdId,
+
+                            period:
+                                'daily'
+
+                        }),
+
+                    signal:
+                        AbortSignal.timeout(
+                            60000
+                        )
+
+                }
+            );
+
 
         console.log(
             'FINANCE HTTP:',
             response.status
         );
 
-        if (response.status === 204) {
+
+        // ====================================================
+        // НЕТ ДАННЫХ
+        // ====================================================
+
+        if (
+            response.status === 204
+        ) {
 
             console.log(
-                'WB FINANCE: 204 — данных больше нет.'
+                'WB FINANCE: 204 — данных нет.'
             );
 
             break;
+
         }
+
+
+        // ====================================================
+        // HTTP ERROR
+        // ====================================================
 
         const text =
             await response.text();
 
-        if (!response.ok) {
 
-            throw new Error(
-                `WB FINANCE ${response.status}: ${text}`
-            );
+        if (
+            !response.ok
+        ) {
+
+            const error =
+                new Error(
+                    `WB FINANCE ${response.status}: ${text}`
+                );
+
+
+            error.status =
+                response.status;
+
+
+            error.retryAfter =
+                response.headers.get(
+                    'X-RateLimit-Retry'
+                );
+
+
+            throw error;
+
         }
 
+
+        // ====================================================
+        // JSON
+        // ====================================================
+
         let rows;
+
 
         try {
 
             rows =
-                JSON.parse(text);
+                JSON.parse(
+                    text
+                );
 
         } catch {
 
             throw new Error(
-                `WB FINANCE: ответ не JSON:\n${text.slice(0, 1000)}`
+                'WB FINANCE вернул не JSON:\n' +
+                text.slice(
+                    0,
+                    1000
+                )
             );
+
         }
+
 
         if (
             !Array.isArray(rows) ||
@@ -2915,210 +2993,369 @@ async function getDailyFinancials(
         ) {
 
             break;
+
         }
+
 
         console.log(
             `Получено строк: ${rows.length}`
         );
 
-        allRows.push(...rows);
+
+        allRows.push(
+            ...rows
+        );
+
+
+        console.log(
+            `Всего строк: ${allRows.length}`
+        );
+
+
+        // ====================================================
+        // ПОСЛЕДНИЙ RRD ID
+        // ====================================================
 
         const lastRow =
-            rows[rows.length - 1];
+            rows[
+                rows.length - 1
+            ];
+
 
         const nextRrdId =
             Number(
-                lastRow.rrdId || 0
+                lastRow?.rrdId || 0
             );
 
+
+        // ====================================================
+        // ЗАЩИТА ОТ ЗАЦИКЛИВАНИЯ
+        // ====================================================
+
         if (
-            !Number.isFinite(nextRrdId) ||
+            !Number.isFinite(
+                nextRrdId
+            ) ||
             nextRrdId <= rrdId
         ) {
 
+            console.log(
+                'rrdId не изменился. Загрузка завершена.'
+            );
+
             break;
+
         }
 
-        rrdId = nextRrdId;
+
+        rrdId =
+            nextRrdId;
+
+
+        // ====================================================
+        // ПОСЛЕДНЯЯ СТРАНИЦА
+        // ====================================================
 
         if (
             rows.length < 100000
         ) {
 
+            console.log(
+                'Получено меньше 100000 строк.'
+            );
+
+            console.log(
+                'Это последняя страница.'
+            );
+
             break;
+
         }
+
     }
 
+
+    console.log('');
     console.log(
-        'ВСЕГО СТРОК:',
+        'ВСЕГО СТРОК FINANCE:',
         allRows.length
     );
 
+
     // ========================================================
-    // ДАЛЬШЕ ТОЛЬКО ЛОКАЛЬНАЯ ОБРАБОТКА
+    // НЕТ ДАННЫХ
+    // ========================================================
+
+    if (
+        !allRows.length
+    ) {
+
+        return {};
+
+    }
+
+
+    // ========================================================
+    // ЛОКАЛЬНАЯ ОБРАБОТКА
     // ========================================================
 
     const result = {};
+
 
     for (
         const row of allRows
     ) {
 
+        // ====================================================
+        // NM ID
+        // ====================================================
+
         const nmId =
             Number(
-                row.nmId || 0
+                row?.nmId || 0
             );
 
-        if (!nmId) {
+
+        if (
+            !Number.isFinite(nmId) ||
+            nmId <= 0
+        ) {
+
             continue;
+
         }
+
+
+        // ====================================================
+        // ДАТА
+        //
+        // API принимает dateFrom/dateTo в МСК.
+        // Здесь оставляем дату самого события.
+        // ====================================================
 
         const rawDate =
-            row.saleDt ||
-            row.orderDt ||
+            row?.saleDt ||
+            row?.orderDt ||
             null;
 
-        if (!rawDate) {
+
+        if (
+            !rawDate
+        ) {
+
             continue;
+
         }
+
 
         const date =
             String(
                 rawDate
-            ).slice(0, 10);
+            ).slice(
+                0,
+                10
+            );
+
+
+        if (
+            !/^\d{4}-\d{2}-\d{2}$/.test(
+                date
+            )
+        ) {
+
+            continue;
+
+        }
+
 
         if (
             date < dateFrom ||
             date > dateTo
         ) {
+
             continue;
+
         }
 
-        if (!result[nmId]) {
+
+        // ====================================================
+        // ТОВАР
+        // ====================================================
+
+        if (
+            !result[nmId]
+        ) {
+
             result[nmId] = {};
+
         }
 
-        if (!result[nmId][date]) {
+
+        // ====================================================
+        // ДЕНЬ
+        // ====================================================
+
+        if (
+            !result[nmId][date]
+        ) {
 
             result[nmId][date] = {
 
-                forPay: 0,
+                forPay:
+                    0,
 
-                logistics: 0,
+                logistics:
+                    0,
 
-                retailPrice: 0
+                retailSales:
+                    0
+
             };
+
         }
+
 
         const item =
             result[nmId][date];
 
+
+        // ====================================================
+        // ТИП ОПЕРАЦИИ
+        // ====================================================
+
         const operation =
             String(
-                row.docTypeName ||
-                row.sellerOperName ||
+                row?.docTypeName ||
+                row?.sellerOperName ||
                 ''
             ).trim();
 
-        // ------------------------------
+
+        // ====================================================
         // ПРОДАЖА
-        // ------------------------------
+        // ====================================================
 
         if (
-            operation === 'Продажа'
+            operation ===
+            'Продажа'
         ) {
 
             item.forPay +=
                 Number(
-                    row.forPay || 0
+                    row?.forPay || 0
                 );
 
-            item.retailPrice +=
+
+            item.retailSales +=
+
                 Number(
-                    row.retailPrice || 0
-                ) *
+                    row?.retailPrice || 0
+                )
+
+                *
+
                 Number(
-                    row.quantity || 0
+                    row?.quantity || 0
                 );
+
         }
 
-        // ------------------------------
+
+        // ====================================================
         // ВОЗВРАТ
-        // ------------------------------
+        // ====================================================
 
         if (
-            operation === 'Возврат'
+            operation ===
+            'Возврат'
         ) {
 
             item.forPay -=
                 Number(
-                    row.forPay || 0
+                    row?.forPay || 0
                 );
 
-            item.retailPrice -=
+
+            item.retailSales -=
+
                 Number(
-                    row.retailPrice || 0
-                ) *
+                    row?.retailPrice || 0
+                )
+
+                *
+
                 Number(
-                    row.quantity || 0
+                    row?.quantity || 0
                 );
+
         }
 
-        // ------------------------------
+
+        // ====================================================
         // ЛОГИСТИКА
-        // ------------------------------
+        // ====================================================
 
         if (
-            operation === 'Логистика'
+            operation ===
+            'Логистика'
         ) {
 
             item.logistics +=
                 Number(
-                    row.deliveryAmount || 0
+                    row?.deliveryAmount || 0
                 );
+
         }
+
     }
+
 
     // ========================================================
     // ОКРУГЛЕНИЕ
     // ========================================================
 
     for (
-        const nmId of Object.keys(result)
+        const nmId of
+        Object.keys(result)
     ) {
 
         for (
-            const date of Object.keys(
+            const date of
+            Object.keys(
                 result[nmId]
             )
         ) {
 
-            result[nmId][date].forPay =
+            const item =
+                result[nmId][date];
+
+
+            item.forPay =
                 Number(
-                    result[nmId][date]
-                        .forPay
-                        .toFixed(2)
+                    item.forPay.toFixed(2)
                 );
 
-            result[nmId][date].logistics =
+
+            item.logistics =
                 Number(
-                    result[nmId][date]
-                        .logistics
-                        .toFixed(2)
+                    item.logistics.toFixed(2)
                 );
 
-            result[nmId][date].retailPrice =
+
+            item.retailSales =
                 Number(
-                    result[nmId][date]
-                        .retailPrice
-                        .toFixed(2)
+                    item.retailSales.toFixed(2)
                 );
+
         }
+
     }
 
+
     console.log(
-        'WB FINANCE DAILY: обработка завершена'
+        'WB FINANCE DAILY: локальная обработка завершена'
     );
+
 
     return result;
 }
@@ -4170,216 +4407,278 @@ async function buildDashboard() {
                     // ФИНАНСОВЫЙ ОТЧЁТ
                     // =========================================
 
-                    const finance =
-                        dailyFinancials[nmId]?.[date] ??
-                        null;
+                    // =========================================================
+// ФИНАНСЫ
+// =========================================================
+
+const finance =
+    dailyFinancials[nmId]?.[date] ??
+    null;
 
 
-                    let financial;
+let financial;
 
 
-                    // =================================================
-                    // ФИНАНСОВЫХ ДАННЫХ НЕТ
-                    //
-                    // Например, WB ещё не сформировал данные за сегодня.
-                    // =================================================
+// =========================================================
+// ФИНАНСОВЫХ ДАННЫХ НЕТ
+// =========================================================
 
-                    if (
-                        !finance
-                    ) {
+if (
+    !finance
+) {
 
-                        financial = {
+    financial = {
 
-                            forPay:
-                                null,
+        forPay:
+            null,
 
-                            logistics:
-                                null,
+        logistics:
+            null,
 
-                            storage:
-                                null,
+        storage:
+            null,
 
-                            profit:
-                                null,
+        retailSales:
+            null,
 
-                            retailSales:
-                                null,
+        tax:
+            null,
 
-                            costTotal:
-                                null,
+        profit:
+            null,
 
-                            profitability:
-                                null,
+        costTotal:
+            null,
 
-                            margin:
-                                null
+        profitability:
+            null,
 
-                        };
+        margin:
+            null
 
-                    } else {
+    };
 
-                        // =============================================
-                        // ХРАНЕНИЕ
-                        // =============================================
+} else {
 
-                        const storage =
-                            Number(
-                                dailyStorage[nmId]?.[date] ||
-                                0
-                            );
+    // =====================================================
+    // ХРАНЕНИЕ
+    // =====================================================
 
-
-                        // =============================================
-                        // WB ПРОДВИЖЕНИЕ
-                        //
-                        // Это уже advertising.spend.
-                        // =============================================
-
-                        const wbPromotion =
-                            Number(
-                                advertising.spend ||
-                                0
-                            );
+    const storage =
+        Number(
+            dailyStorage[nmId]?.[date] ||
+            0
+        );
 
 
-                        // =============================================
-                        // ПРИБЫЛЬ
-                        //
-                        // К перечислению
-                        // − Логистика
-                        // − Хранение
-                        // − WB Продвижение
-                        // =============================================
+    // =====================================================
+    // WB ПРОДВИЖЕНИЕ
+    //
+    // Берём уже полученные рекламные расходы.
+    // =====================================================
 
-                        const profit =
-                            Number(
-                                (
-                                    Number(
-                                        finance.forPay ||
-                                        0
-                                    )
-                                    -
-                                    Number(
-                                        finance.logistics ||
-                                        0
-                                    )
-                                    -
-                                    storage
-                                    -
-                                    wbPromotion
-                                ).toFixed(2)
-                            );
+    const wbPromotion =
+        Number(
+            advertising.spend ||
+            0
+        );
 
 
-                        // =============================================
-                        // ПРОДАЖИ
-                        // =============================================
+    // =====================================================
+    // ПРОДАЖИ
+    // =====================================================
 
-                        const sales =
-                            Number(
-                                d.sales ||
-                                0
-                            );
-
-
-                        // =============================================
-                        // СЕБЕСТОИМОСТЬ ПРОДАННОГО
-                        // =============================================
-
-                        const costTotal =
-                            cost != null
-
-                                ? Number(
-                                    (
-                                        cost *
-                                        sales
-                                    ).toFixed(2)
-                                )
-
-                                : null;
+    const sales =
+        Number(
+            d.sales ||
+            0
+        );
 
 
-                        // =============================================
-                        // РЕНТАБЕЛЬНОСТЬ
-                        //
-                        // Прибыль /
-                        // Себестоимость проданного × 100
-                        // =============================================
+    // =====================================================
+    // РОЗНИЧНАЯ ВЫРУЧКА
+    // =====================================================
 
-                        const profitability =
-                            costTotal != null &&
-                            costTotal > 0
-
-                                ? Number(
-                                    (
-                                        profit /
-                                        costTotal *
-                                        100
-                                    ).toFixed(2)
-                                )
-
-                                : null;
+    const retailSales =
+        Number(
+            finance.retailSales ||
+            0
+        );
 
 
-                        // =============================================
-                        // РОЗНИЧНАЯ ВЫРУЧКА
-                        // =============================================
+    // =====================================================
+    // НАЛОГ
+    //
+    // Формула из твоего рабочего отчёта:
+    //
+    // E / 105 * 5
+    //
+    // +
+    //
+    // (E - E / 105 * 5) * 0.02
+    //
+    // где E = сумма продажи
+    // =====================================================
 
-                        const retailSales =
-                            Number(
-                                finance.retailSales ||
-                                0
-                            );
-
-
-                        // =============================================
-                        // МАРЖА
-                        //
-                        // Прибыль /
-                        // Розничная выручка × 100
-                        // =============================================
-
-                        const margin =
-                            retailSales > 0
-
-                                ? Number(
-                                    (
-                                        profit /
-                                        retailSales *
-                                        100
-                                    ).toFixed(2)
-                                )
-
-                                : null;
+    const taxPart1 =
+        retailSales /
+        105 *
+        5;
 
 
-                        financial = {
+    const taxPart2 =
+        (
+            retailSales -
+            taxPart1
+        ) *
+        0.02;
 
-                            forPay:
-                                Number(
-                                    finance.forPay ||
-                                    0
-                                ),
 
-                            logistics:
-                                Number(
-                                    finance.logistics ||
-                                    0
-                                ),
+    const tax =
+        Number(
+            (
+                taxPart1 +
+                taxPart2
+            ).toFixed(2)
+        );
 
-                            storage,
 
-                            profit,
+    // =====================================================
+    // ПРИБЫЛЬ
+    //
+    // К перечислению
+    // − Логистика
+    // − Хранение
+    // − WB Продвижение
+    // − Налог
+    // =====================================================
 
-                            retailSales,
+    const profit =
+        Number(
+            (
+                Number(
+                    finance.forPay ||
+                    0
+                )
 
-                            costTotal,
+                -
 
-                            profitability,
+                Number(
+                    finance.logistics ||
+                    0
+                )
 
-                            margin
+                -
 
-                        };
+                storage
+
+                -
+
+                wbPromotion
+
+                -
+
+                tax
+
+            ).toFixed(2)
+        );
+
+
+    // =====================================================
+    // СЕБЕСТОИМОСТЬ ПРОДАННОГО
+    // =====================================================
+
+    const costTotal =
+        cost != null
+
+            ? Number(
+                (
+                    cost *
+                    sales
+                ).toFixed(2)
+            )
+
+            : null;
+
+
+    // =====================================================
+    // РЕНТАБЕЛЬНОСТЬ
+    //
+    // Прибыль /
+    // Себестоимость проданного × 100
+    // =====================================================
+
+    const profitability =
+        costTotal != null &&
+        costTotal > 0
+
+            ? Number(
+                (
+                    profit /
+                    costTotal *
+                    100
+                ).toFixed(2)
+            )
+
+            : null;
+
+
+    // =====================================================
+    // МАРЖА
+    //
+    // Прибыль /
+    // Цена розничная × 100
+    // =====================================================
+
+    const margin =
+        retailSales > 0
+
+            ? Number(
+                (
+                    profit /
+                    retailSales *
+                    100
+                ).toFixed(2)
+            )
+
+            : null;
+
+
+    // =====================================================
+    // ГОТОВЫЕ ФИНАНСЫ
+    // =====================================================
+
+    financial = {
+
+        forPay:
+            Number(
+                finance.forPay ||
+                0
+            ),
+
+        logistics:
+            Number(
+                finance.logistics ||
+                0
+            ),
+
+        storage,
+
+        retailSales,
+
+        tax,
+
+        profit,
+
+        costTotal,
+
+        profitability,
+
+        margin
+
+    };
+
+
 
                     }
 
