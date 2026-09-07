@@ -930,7 +930,7 @@ tbody tr:hover td.product-cell {
             >
 
             <span>
-                Нулевые продажи скрыты
+                Нулевые заказы скрыты
             </span>
 
         </label>
@@ -976,12 +976,14 @@ tbody tr:hover td.product-cell {
             <label><input type="checkbox" data-column="adClicks" checked><span>Клики</span></label>
             <label><input type="checkbox" data-column="adCarts" checked><span>Корзины</span></label>
             <label><input type="checkbox" data-column="adCpm" checked><span>CPM</span></label>
-            <label><input type="checkbox" data-column="adSpend" checked><span>Затраты</span></label>
+            <label><input type="checkbox" data-column="adSpend"><span>Затраты</span></label>
             <label><input type="checkbox" data-column="adOrders" checked><span>Заказы</span></label>
             <label><input type="checkbox" data-column="adOrdersAmount" checked><span>Сумма заказов</span></label>
 
             <label><input type="checkbox" data-column="allOrders" checked><span>Все заказы</span></label>
             <label><input type="checkbox" data-column="sales" checked><span>Продажи</span></label>
+
+            <label><input type="checkbox" data-column="retailSales" checked><span>Оборот</span></label>
 
             <label><input type="checkbox" data-column="forPay"><span>К перечислению</span></label>
             <label><input type="checkbox" data-column="logistics"><span>Логистика</span></label>
@@ -1484,32 +1486,32 @@ function render(data) {
                 // --------------------------------------------
 
                 if (
-    hideZeroSales
-) {
+                    hideZeroSales
+                ) {
 
-    const orders =
-        visibleDays.reduce(
-            (
-                sum,
-                day
-            ) =>
-                sum +
-                Number(
-                    day?.allOrders ??
-                    day?.orders ??
-                    0
-                ),
-            0
-        );
+                    const orders =
+                        visibleDays.reduce(
+                            (
+                                sum,
+                                day
+                            ) =>
+                                sum +
+                                Number(
+                                    day?.allOrders ??
+                                    day?.orders ??
+                                    0
+                                ),
+                            0
+                        );
 
 
-    if (
-        orders <= 0
-    ) {
+                    if (
+                        orders <= 0
+                    ) {
 
-        return false;
-    }
-}
+                        return false;
+                    }
+                }
 
 
                 // --------------------------------------------
@@ -1803,6 +1805,13 @@ function render(data) {
 
 
     const financialColumns = [
+
+        {
+            key: 'retailSales',
+            title: 'Оборот',
+            className: 'day-col-wide',
+            group: 'finance'
+        },
 
         {
             key: 'forPay',
@@ -2208,9 +2217,13 @@ function render(data) {
             >
                 Все заказы<br>30 дней
             </th>
-            <th class="summary-col">
-    Средние заказы<br>за 7 дней
-</th>
+
+            <th
+                rowspan="3"
+                class="result-col"
+            >
+                Средние продажи<br>за 7 дней
+            </th>
 
             <th
                 rowspan="3"
@@ -2446,6 +2459,16 @@ function render(data) {
                             changeClasses.sales ||
                             ''
                         );
+
+                break;
+
+
+            case 'retailSales':
+
+                value =
+                    formatMoney(
+                        financial?.retailSales
+                    );
 
                 break;
 
@@ -2775,65 +2798,77 @@ function render(data) {
 
         html += `
 
-    <td
-        class="day-separator result-col"
-    >
+                <td
+                    class="day-separator result-col"
+                >
 
-        ${formatNumber(
-            product.orders30
-        )}
+                    ${formatNumber(
+                        product.orders30
+                    )}
 
-    </td>
+                </td>
 
-    <td
-        class="stock result-col"
-    >
+                <td
+                    class="result-col"
+                >
 
-        ${formatNumber(
-            product.stockToday
-        )}
+                    ${formatNumber(
+                        product.averageSales7
+                        ,
+                        1
+                    )}
 
-    </td>
+                </td>
 
-    <td
-        class="days-left result-col"
-    >
+                <td
+                    class="stock result-col"
+                >
 
-        ${
-            product.daysLeft === null
-                ? '<span class="empty">∞</span>'
-                : formatNumber(
-                    product.daysLeft,
-                    1
-                ) + ' дн.'
-        }
+                    ${formatNumber(
+                        product.stockToday
+                    )}
 
-    </td>
+                </td>
 
-    <td
-        class="position result-col"
-    >
+                <td
+                    class="days-left result-col"
+                >
 
-        ${formatNumber(
-            product.positionToday,
-            1
-        )}
+                    ${
+                        product.daysLeft === null
+                            ? '<span class="empty">∞</span>'
+                            : formatNumber(
+                                product.daysLeft,
+                                1
+                            ) + ' дн.'
+                    }
 
-    </td>
+                </td>
 
-    <td
-        class="cost result-col"
-    >
+                <td
+                    class="position result-col"
+                >
 
-        ${formatMoney(
-            product.cost
-        )}
+                    ${formatNumber(
+                        product.positionToday,
+                        1
+                    )}
 
-    </td>
+                </td>
 
-</tr>
+                <td
+                    class="cost result-col"
+                >
 
-`;
+                    ${formatMoney(
+                        product.cost
+                    )}
+
+                </td>
+
+            </tr>
+
+        `;
     }
 
 
