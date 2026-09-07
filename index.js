@@ -3903,30 +3903,25 @@ async function buildDashboard() {
     }
 
 
-    // ========================================================
-    // ПОСЛЕДНИЕ 3 ДНЯ
-    //
-    // [позавчера, вчера, сегодня]
-    // ========================================================
+  // ========================================================
+// ПОСЛЕДНИЕ 7 ДНЕЙ
+// ========================================================
 
-    const last3 =
-        dates.slice(
-            -3
-        );
-
-
-    const financialFrom =
-        last3[0];
-
-
-    const financialTo =
-        last3[last3.length - 1];
-
-
-    console.log(
-        'Последние 3 дня:',
-        last3
+const last7 =
+    dates.slice(
+        -7
     );
+
+const financialFrom =
+    last7[0];
+
+const financialTo =
+    last7[last7.length - 1];
+
+console.log(
+    'Последние 7 дней:',
+    last7
+);
 
 
     // ========================================================
@@ -4369,8 +4364,8 @@ async function buildDashboard() {
         // ====================================================
 
         const days =
-            last3.map(
-                date => {
+    last7.map(
+        date => {
 
                     const d =
                         product.days[date] ||
