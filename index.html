@@ -1747,7 +1747,7 @@ function render(data) {
 
 
     const visibleDateValues =
-        sampleDays.slice(-daysCount);
+        sampleDays.slice(-daysCount).reverse();
 
 
     // ========================================================
@@ -1760,21 +1760,21 @@ function render(data) {
     ) {
 
         if (
-            visibleIndex === total - 1
+            visibleIndex === 0
         ) {
             return 'Сегодня';
         }
 
 
         if (
-            visibleIndex === total - 2
+            visibleIndex === 1
         ) {
             return 'Вчера';
         }
 
 
         if (
-            visibleIndex === total - 3
+            visibleIndex === 2
         ) {
             return 'Позавчера';
         }
@@ -2246,7 +2246,7 @@ function render(data) {
 
 
         const visibleDays =
-            allDays.slice(-daysCount);
+            allDays.slice(-daysCount).reverse();
 
 
         html += `
@@ -2297,8 +2297,7 @@ function render(data) {
             ) => {
 
                 const isToday =
-                    index ===
-                    visibleDays.length - 1;
+                    index === 0;
 
 
                 const columns =
@@ -2308,8 +2307,8 @@ function render(data) {
 
 
                 const previousDay =
-                    index > 0
-                        ? visibleDays[index - 1]
+                    index < visibleDays.length - 1
+                        ? visibleDays[index + 1]
                         : null;
 
 
