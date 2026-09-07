@@ -4455,23 +4455,7 @@ async function getDailyStorage(
 // ============================================================
 // DASHBOARD
 // ============================================================
-// ============================================================
-// ПРОГРЕСС DASHBOARD
-// ============================================================
 
-let dashboardProgress = {
-    running: false,
-
-    steps: {
-        orders: false,
-        sellerPrices: false,
-        stocks: false,
-        moysklad: false,
-        advertising: false,
-        finance: false,
-        storage: false
-    }
-};
 function resetDashboardProgress() {
 
     dashboardProgress = {
