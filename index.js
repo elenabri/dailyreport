@@ -603,41 +603,7 @@ async function wbPostRetry(
 }
 
 
-// ============================================================
-// РЕКЛАМА — FULLSTATS
-//
-// dateFrom / dateTo приходят из buildDashboard().
-//
-// ВАЖНО:
-// функция НЕ ограничивает кампании последними 3 днями.
-//
-// Берём все подходящие кампании из promotion/count,
-// а затем FULLSTATS запрашиваем именно за dateFrom -> dateTo.
-//
-// Это позволяет работать с диапазоном от 1 до 7 дней.
-// ============================================================
 
-// ============================================================
-// РЕКЛАМА — FULLSTATS
-//
-// Результат:
-//
-// result[nmId][date] = {
-//
-//     views,
-//     clicks,
-//     atbs,
-//     cpm,
-//     spend,
-//
-//     orders,        // заказы из рекламы
-//     ordersAmount   // сумма заказов из рекламы
-//
-// }
-//
-// Важно:
-// orders здесь НЕ смешивается с общими заказами.
-// ============================================================
 
 // ============================================================
 // РЕКЛАМА — FULLSTATS
@@ -4484,15 +4450,63 @@ async function getDailyStorage(
 
     return result;
 }
-// ============================================================
-// DASHBOARD
-// ============================================================
+
 
 // ============================================================
 // DASHBOARD
 // ============================================================
+// ============================================================
+// ПРОГРЕСС DASHBOARD
+// ============================================================
 
+let dashboardProgress = {
+    running: false,
+
+    steps: {
+        orders: false,
+        sellerPrices: false,
+        stocks: false,
+        moysklad: false,
+        advertising: false,
+        finance: false,
+        storage: false
+    }
+};
+function resetDashboardProgress() {
+
+    dashboardProgress = {
+
+        running: true,
+
+        steps: {
+            orders: false,
+            sellerPrices: false,
+            stocks: false,
+            moysklad: false,
+            advertising: false,
+            finance: false,
+            storage: false
+        }
+
+    };
+
+}
+// ============================================================
+// ПРОГРЕСС DASHBOARD
+// ============================================================
+
+app.get(
+    '/api/dashboard-progress',
+    (req, res) => {
+
+        res.json(
+            dashboardProgress
+        );
+
+    }
+);
 async function buildDashboard() {
+    resetDashboardProgress();
 
     const today =
         getMoscowToday();
@@ -4553,6 +4567,8 @@ async function buildDashboard() {
 
     const dates =
         ordersData.dates;
+    dashboardProgress.steps.orders =
+    true;
 
 
     console.log(
@@ -4687,7 +4703,8 @@ async function buildDashboard() {
         await getCurrentSellerPrices(
             nmIds
         );
-
+dashboardProgress.steps.sellerPrices =
+    true;
 
     console.log(
         `✅ 3/9 ЦЕНЫ ПРОДАВЦА — завершено за ${
@@ -4752,6 +4769,8 @@ async function buildDashboard() {
             today
         );
 
+dashboardProgress.steps.stocks =
+    true;
 
     console.log(
         `✅ 5/9 ОСТАТКИ — завершено за ${
@@ -4824,7 +4843,8 @@ async function buildDashboard() {
         );
     const moySkladMainStock =
     await getMoySkladMainStockByArticle();
-
+dashboardProgress.steps.moysklad =
+    true;
 
     console.log(
     `✅ 6/9 МОЙСКЛАД — завершено. ` +
@@ -4858,7 +4878,8 @@ async function buildDashboard() {
             financialFrom,
             financialTo
         );
-
+dashboardProgress.steps.advertising =
+    true;
 
     console.log(
         `✅ 7/9 РЕКЛАМА — завершено за ${
@@ -4888,7 +4909,8 @@ async function buildDashboard() {
             financialFrom,
             financialTo
         );
-
+dashboardProgress.steps.finance =
+    true;
 
     console.log(
         `✅ 8/9 ФИНАНСЫ — завершено за ${
@@ -4918,7 +4940,8 @@ async function buildDashboard() {
             financialFrom,
             financialTo
         );
-
+dashboardProgress.steps.storage =
+    true;
 
     console.log(
         `✅ 9/9 ХРАНЕНИЕ — завершено за ${
@@ -5566,7 +5589,8 @@ mainStock:
     console.log(
         '========================================'
     );
-
+dashboardProgress.running =
+    false;
 
     return {
 
@@ -5644,6 +5668,8 @@ app.get(
             });
 
         } catch (error) {
+             dashboardProgress.running =
+        false;
 
             console.error(
                 'DASHBOARD ERROR:',
