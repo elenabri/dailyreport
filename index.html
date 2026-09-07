@@ -578,6 +578,152 @@ tbody tr:hover td {
 
 }
 
+
+/* =========================================================
+   ФИЛЬТРЫ ТОВАРОВ
+   ========================================================= */
+
+.table-filters {
+
+    display: flex;
+
+    align-items: flex-end;
+
+    gap: 18px;
+
+    margin-bottom: 12px;
+
+    padding: 10px 12px;
+
+    background: white;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 12px;
+}
+
+.filter-group {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 5px;
+
+    width: 420px;
+}
+
+.filter-group label {
+
+    color: #68707c;
+
+    font-size: 11px;
+
+    font-weight: 700;
+}
+
+#productFilter {
+
+    width: 100%;
+
+    height: 36px;
+
+    padding: 0 11px;
+
+    border: 1px solid #d9dde3;
+
+    border-radius: 8px;
+
+    outline: none;
+
+    background: white;
+
+    color: #20242b;
+
+    font-size: 13px;
+}
+
+#productFilter:focus {
+
+    border-color: #9aa2ad;
+}
+
+.zero-sales-filter {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    height: 36px;
+
+    color: #3f4650;
+
+    font-size: 12px;
+
+    cursor: pointer;
+
+    user-select: none;
+}
+
+.zero-sales-filter input {
+
+    width: 16px;
+
+    height: 16px;
+
+    margin: 0;
+
+    cursor: pointer;
+}
+
+/* =========================================================
+   РОВНЫЕ КОЛОНКИ
+   ========================================================= */
+
+table {
+
+    table-layout: fixed;
+
+    min-width: 2300px;
+}
+
+.day-cell {
+
+    width: 82px;
+
+    min-width: 82px;
+
+    max-width: 82px;
+}
+
+.day-cell-wide {
+
+    width: 100px;
+
+    min-width: 100px;
+
+    max-width: 100px;
+}
+
+.result-cell {
+
+    width: 95px;
+
+    min-width: 95px;
+
+    max-width: 95px;
+}
+
+th,
+td {
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
 </style>
 
 </head>
@@ -628,6 +774,44 @@ tbody tr:hover td {
 
 
     <!-- =====================================================
+         ФИЛЬТРЫ
+         ===================================================== -->
+
+    <div class="table-filters">
+
+        <div class="filter-group">
+
+            <label for="productFilter">
+                Фильтр товаров
+            </label>
+
+            <input
+                type="text"
+                id="productFilter"
+                placeholder="Название, код или nmId"
+                autocomplete="off"
+            >
+
+        </div>
+
+        <label class="zero-sales-filter">
+
+            <input
+                type="checkbox"
+                id="hideZeroSales"
+                checked
+            >
+
+            <span>
+                Нулевые продажи скрыты
+            </span>
+
+        </label>
+
+    </div>
+
+
+    <!-- =====================================================
          TABLE
          ===================================================== -->
 
@@ -648,7 +832,7 @@ tbody tr:hover td {
                 <tr>
 
                     <td
-                        colspan="47"
+                        colspan="50"
                         class="loading"
                     >
                         Загрузка данных WB...
@@ -1017,8 +1201,109 @@ function getChangeClass(
 
 function render(data) {
 
+    // ========================================================
+    // ВСЕ ТОВАРЫ
+    // ========================================================
+
+    const allProducts =
+        Array.isArray(data.products)
+            ? data.products
+            : [];
+
+
+    // ========================================================
+    // ФИЛЬТРЫ
+    // ========================================================
+
+    const filterInput =
+        document.getElementById(
+            'productFilter'
+        );
+
+    const hideZeroSalesCheckbox =
+        document.getElementById(
+            'hideZeroSales'
+        );
+
+    const filterText =
+        String(
+            filterInput?.value || ''
+        )
+            .trim()
+            .toLowerCase();
+
+    const hideZeroSales =
+        hideZeroSalesCheckbox
+            ? hideZeroSalesCheckbox.checked
+            : true;
+
+
+    // ========================================================
+    // ФИЛЬТРАЦИЯ ТОВАРОВ
+    //
+    // При включённой галочке показываем только товары,
+    // у которых была хотя бы одна продажа за 3 последних дня.
+    //
+    // Поиск работает по:
+    // - названию
+    // - коду / артикулу
+    // - nmId
+    // ========================================================
+
     const products =
-        data.products || [];
+        allProducts.filter(
+            product => {
+
+                const dayBefore =
+                    product.days?.[0] || {};
+
+                const yesterday =
+                    product.days?.[1] || {};
+
+                const today =
+                    product.days?.[2] || {};
+
+                const sales3Days =
+                    Number(dayBefore.sales || 0) +
+                    Number(yesterday.sales || 0) +
+                    Number(today.sales || 0);
+
+                if (
+                    hideZeroSales &&
+                    sales3Days <= 0
+                ) {
+                    return false;
+                }
+
+                if (filterText) {
+
+                    const name =
+                        String(
+                            product.name || ''
+                        ).toLowerCase();
+
+                    const article =
+                        String(
+                            product.article || ''
+                        ).toLowerCase();
+
+                    const nmId =
+                        String(
+                            product.nmId || ''
+                        ).toLowerCase();
+
+                    if (
+                        !name.includes(filterText) &&
+                        !article.includes(filterText) &&
+                        !nmId.includes(filterText)
+                    ) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        );
 
 
     // ========================================================
@@ -1028,43 +1313,43 @@ function render(data) {
     document
         .getElementById('period')
         .textContent =
-
-        `Заказы: ${
-            formatDate(
-                data.period.from
-            )
-        } — ${
-            formatDate(
-                data.period.to
-            )
-        } · товаров: ${
-            products.length
-        }`;
+            `Заказы: ${
+                formatDate(data.period.from)
+            } — ${
+                formatDate(data.period.to)
+            } · товаров: ${
+                products.length
+            }`;
 
 
     // ========================================================
     // НЕТ ТОВАРОВ
     // ========================================================
 
-    if (
-        !products.length
-    ) {
+    if (!products.length) {
 
         document
-            .getElementById(
-                'tableBody'
-            )
+            .getElementById('tableHead')
+            .innerHTML = '';
+
+        document
+            .getElementById('tableBody')
             .innerHTML = `
 
                 <tr>
 
                     <td
-                        colspan="47"
+                        colspan="50"
                         class="error"
                     >
 
-                        За последние 30 дней
-                        заказов нет.
+                        ${
+                            filterText
+                                ? 'Товары не найдены.'
+                                : hideZeroSales
+                                    ? 'За последние 3 дня продаж нет.'
+                                    : 'Товары отсутствуют.'
+                        }
 
                     </td>
 
@@ -1073,7 +1358,6 @@ function render(data) {
             `;
 
         return;
-
     }
 
 
@@ -1081,20 +1365,14 @@ function render(data) {
     // ДНИ
     // ========================================================
 
-    const firstProduct =
-        products[0];
-
-
     const today =
-        firstProduct.days[2];
-
+        products[0].days[2];
 
     const yesterday =
-        firstProduct.days[1];
-
+        products[0].days[1];
 
     const dayBefore =
-        firstProduct.days[0];
+        products[0].days[0];
 
 
     // ========================================================
@@ -1102,9 +1380,7 @@ function render(data) {
     // ========================================================
 
     document
-        .getElementById(
-            'tableHead'
-        )
+        .getElementById('tableHead')
         .innerHTML = `
 
         <tr>
@@ -1116,6 +1392,7 @@ function render(data) {
                 Товар
             </th>
 
+            <!-- ================== СЕГОДНЯ ================== -->
 
             <th
                 colspan="9"
@@ -1131,8 +1408,10 @@ function render(data) {
             </th>
 
 
+            <!-- ==================== ВЧЕРА ==================== -->
+
             <th
-                colspan="9"
+                colspan="16"
                 class="day-title day-separator"
             >
 
@@ -1145,8 +1424,10 @@ function render(data) {
             </th>
 
 
+            <!-- ================= ПОЗАВЧЕРА ================= -->
+
             <th
-                colspan="9"
+                colspan="16"
                 class="day-title day-separator"
             >
 
@@ -1159,52 +1440,44 @@ function render(data) {
             </th>
 
 
+            <!-- ==================== ИТОГИ ==================== -->
+
             <th
                 rowspan="2"
-                class="day-separator"
+                class="day-separator result-cell"
             >
-
                 Заказы<br>
                 30 дней
-
             </th>
-
 
             <th
                 rowspan="2"
+                class="result-cell"
             >
-
                 Остаток<br>
                 сегодня
-
             </th>
-
 
             <th
                 rowspan="2"
+                class="result-cell"
             >
-
                 Хватит<br>
                 на
-
             </th>
-
 
             <th
                 rowspan="2"
+                class="result-cell"
             >
-
                 Позиция
-
             </th>
-
 
             <th
                 rowspan="2"
+                class="result-cell"
             >
-
                 Себестоимость
-
             </th>
 
         </tr>
@@ -1212,125 +1485,182 @@ function render(data) {
 
         <tr>
 
-            <!-- СЕГОДНЯ -->
+            <!-- =================================================
+                 СЕГОДНЯ — ФИНАНСОВЫХ КОЛОНОК НЕТ
+                 ================================================= -->
 
-            <th class="day-separator">
+            <th class="day-separator day-cell-wide">
                 Цена<br>покупателя
             </th>
 
-            <th>
+            <th class="day-cell">
                 СПП
             </th>
 
-            <th>
+            <th class="day-cell-wide">
                 Цена<br>продавца
             </th>
 
-            <th>
+            <th class="day-cell">
                 Показы
             </th>
 
-            <th>
+            <th class="day-cell">
                 Клики
             </th>
 
-            <th>
+            <th class="day-cell">
                 Корзины
             </th>
 
-            <th>
+            <th class="day-cell">
                 CPM
             </th>
 
-            <th>
+            <th class="day-cell-wide">
                 Затраты
             </th>
 
-            <th>
-                Продажи
-            </th>
-            <th>Логистика</th>
-<th>Хранение</th>
-<th>Прибыль</th>
-<th>Рентабельность</th>
-<th>Маржа</th>
-
-
-            <!-- ВЧЕРА -->
-
-            <th class="day-separator">
-                Цена<br>покупателя
-            </th>
-
-            <th>
-                СПП
-            </th>
-
-            <th>
-                Цена<br>продавца
-            </th>
-
-            <th>
-                Показы
-            </th>
-
-            <th>
-                Клики
-            </th>
-
-            <th>
-                Корзины
-            </th>
-
-            <th>
-                CPM
-            </th>
-
-            <th>
-                Затраты
-            </th>
-
-            <th>
+            <th class="day-cell">
                 Продажи
             </th>
 
 
-            <!-- ПОЗАВЧЕРА -->
+            <!-- =================================================
+                 ВЧЕРА
+                 ================================================= -->
 
-            <th class="day-separator">
+            <th class="day-separator day-cell-wide">
                 Цена<br>покупателя
             </th>
 
-            <th>
+            <th class="day-cell">
                 СПП
             </th>
 
-            <th>
+            <th class="day-cell-wide">
                 Цена<br>продавца
             </th>
 
-            <th>
+            <th class="day-cell">
                 Показы
             </th>
 
-            <th>
+            <th class="day-cell">
                 Клики
             </th>
 
-            <th>
+            <th class="day-cell">
                 Корзины
             </th>
 
-            <th>
+            <th class="day-cell">
                 CPM
             </th>
 
-            <th>
+            <th class="day-cell-wide">
                 Затраты
             </th>
 
-            <th>
+            <th class="day-cell">
                 Продажи
+            </th>
+
+            <th class="day-cell-wide">
+                К перечислению
+            </th>
+
+            <th class="day-cell-wide">
+                Логистика
+            </th>
+
+            <th class="day-cell-wide">
+                Хранение
+            </th>
+
+            <th class="day-cell-wide">
+                Налог
+            </th>
+
+            <th class="day-cell-wide">
+                Прибыль
+            </th>
+
+            <th class="day-cell-wide">
+                Рентабельность
+            </th>
+
+            <th class="day-cell-wide">
+                Маржа
+            </th>
+
+
+            <!-- =================================================
+                 ПОЗАВЧЕРА
+                 ================================================= -->
+
+            <th class="day-separator day-cell-wide">
+                Цена<br>покупателя
+            </th>
+
+            <th class="day-cell">
+                СПП
+            </th>
+
+            <th class="day-cell-wide">
+                Цена<br>продавца
+            </th>
+
+            <th class="day-cell">
+                Показы
+            </th>
+
+            <th class="day-cell">
+                Клики
+            </th>
+
+            <th class="day-cell">
+                Корзины
+            </th>
+
+            <th class="day-cell">
+                CPM
+            </th>
+
+            <th class="day-cell-wide">
+                Затраты
+            </th>
+
+            <th class="day-cell">
+                Продажи
+            </th>
+
+            <th class="day-cell-wide">
+                К перечислению
+            </th>
+
+            <th class="day-cell-wide">
+                Логистика
+            </th>
+
+            <th class="day-cell-wide">
+                Хранение
+            </th>
+
+            <th class="day-cell-wide">
+                Налог
+            </th>
+
+            <th class="day-cell-wide">
+                Прибыль
+            </th>
+
+            <th class="day-cell-wide">
+                Рентабельность
+            </th>
+
+            <th class="day-cell-wide">
+                Маржа
             </th>
 
         </tr>
@@ -1352,17 +1682,15 @@ function render(data) {
         const today =
             product.days[2];
 
-
         const yesterday =
             product.days[1];
-
 
         const dayBefore =
             product.days[0];
 
 
         // ====================================================
-        // ЦЕНА ПОКУПАТЕЛЯ
+        // КЛАССЫ ИЗМЕНЕНИЙ
         // ====================================================
 
         const buyerTodayClass =
@@ -1372,18 +1700,12 @@ function render(data) {
                 'price'
             );
 
-
         const buyerYesterdayClass =
             getChangeClass(
                 yesterday.buyerPrice,
                 dayBefore.buyerPrice,
                 'price'
             );
-
-
-        // ====================================================
-        // СПП
-        // ====================================================
 
         const sppTodayClass =
             getChangeClass(
@@ -1392,18 +1714,12 @@ function render(data) {
                 'spp'
             );
 
-
         const sppYesterdayClass =
             getChangeClass(
                 yesterday.spp,
                 dayBefore.spp,
                 'spp'
             );
-
-
-        // ====================================================
-        // ЦЕНА ПРОДАВЦА
-        // ====================================================
 
         const sellerTodayClass =
             getChangeClass(
@@ -1412,18 +1728,12 @@ function render(data) {
                 'price'
             );
 
-
         const sellerYesterdayClass =
             getChangeClass(
                 yesterday.sellerPrice,
                 dayBefore.sellerPrice,
                 'price'
             );
-
-
-        // ====================================================
-        // ПРОДАЖИ
-        // ====================================================
 
         const salesYesterdayClass =
             getChangeClass(
@@ -1434,7 +1744,18 @@ function render(data) {
 
 
         // ====================================================
-        // HTML
+        // ФИНАНСЫ
+        // ====================================================
+
+        const yesterdayFinancial =
+            yesterday.financial || {};
+
+        const dayBeforeFinancial =
+            dayBefore.financial || {};
+
+
+        // ====================================================
+        // СТРОКА
         // ====================================================
 
         html += `
@@ -1460,11 +1781,16 @@ function render(data) {
         <div class="product-article">
 
             ${escapeHtml(
-                product.article || ''
+                product.article ||
+                ''
             )}
 
             · nmId
-            ${product.nmId}
+
+            ${escapeHtml(
+                product.nmId ||
+                ''
+            )}
 
         </div>
 
@@ -1474,412 +1800,302 @@ function render(data) {
     <!-- ==================== СЕГОДНЯ ==================== -->
 
     <td
-        class="day-separator ${buyerTodayClass}"
+        class="day-separator day-cell-wide ${buyerTodayClass}"
     >
-
         ${formatMoney(
             today.buyerPrice
         )}
-
     </td>
 
-
-    <td
-        class="${sppTodayClass}"
-    >
-
+    <td class="day-cell ${sppTodayClass}">
         ${formatPercent(
             today.spp
         )}
-
     </td>
 
-
-    <td
-        class="${sellerTodayClass}"
-    >
-
+    <td class="day-cell-wide ${sellerTodayClass}">
         ${formatMoney(
             today.sellerPrice
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell">
         ${formatNumber(
             today.advertising?.views || 0
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell">
         ${formatNumber(
             today.advertising?.clicks || 0
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell">
         ${formatNumber(
             today.advertising?.atbs || 0
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell">
         ${formatNumber(
             today.advertising?.cpm || 0,
             2
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell-wide">
         ${formatAdMoney(
             today.advertising?.spend || 0
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell">
         ${formatNumber(
             today.sales
         )}
-
     </td>
-<td>
-    ${formatMoney(
-        today.financial?.logistics
-    )}
-</td>
 
-<td>
-    ${formatMoney(
-        today.financial?.storage
-    )}
-</td>
-
-<td>
-    ${formatMoney(
-        today.financial?.profit
-    )}
-</td>
-
-<td>
-    ${
-        today.financial?.profitability == null
-            ? '<span class="empty">—</span>'
-            : formatPercent(
-                today.financial.profitability
-            )
-    }
-</td>
-
-<td>
-    ${
-        today.financial?.margin == null
-            ? '<span class="empty">—</span>'
-            : formatPercent(
-                today.financial.margin
-            )
-    }
-</td>
 
     <!-- ===================== ВЧЕРА ===================== -->
 
     <td
-        class="day-separator ${buyerYesterdayClass}"
+        class="day-separator day-cell-wide ${buyerYesterdayClass}"
     >
-
         ${formatMoney(
             yesterday.buyerPrice
         )}
-
     </td>
 
-
-    <td
-        class="${sppYesterdayClass}"
-    >
-
+    <td class="day-cell ${sppYesterdayClass}">
         ${formatPercent(
             yesterday.spp
         )}
-
     </td>
 
-
-    <td
-        class="${sellerYesterdayClass}"
-    >
-
+    <td class="day-cell-wide ${sellerYesterdayClass}">
         ${formatMoney(
             yesterday.sellerPrice
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell">
         ${formatNumber(
             yesterday.advertising?.views || 0
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell">
         ${formatNumber(
             yesterday.advertising?.clicks || 0
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell">
         ${formatNumber(
             yesterday.advertising?.atbs || 0
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell">
         ${formatNumber(
             yesterday.advertising?.cpm || 0,
             2
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell-wide">
         ${formatAdMoney(
             yesterday.advertising?.spend || 0
         )}
-
     </td>
 
-
-    <td
-        class="${salesYesterdayClass}"
-    >
-
+    <td class="day-cell ${salesYesterdayClass}">
         ${formatNumber(
             yesterday.sales
         )}
-
     </td>
-<td>
-    ${formatMoney(
-        yesterday.financial?.logistics
-    )}
-</td>
 
-<td>
-    ${formatMoney(
-        yesterday.financial?.storage
-    )}
-</td>
+    <td class="day-cell-wide">
+        ${formatMoney(
+            yesterdayFinancial.forPay
+        )}
+    </td>
 
-<td>
-    ${formatMoney(
-        yesterday.financial?.profit
-    )}
-</td>
+    <td class="day-cell-wide">
+        ${formatMoney(
+            yesterdayFinancial.logistics
+        )}
+    </td>
 
-<td>
-    ${
-        yesterday.financial?.profitability == null
-            ? '<span class="empty">—</span>'
-            : formatPercent(
-                yesterday.financial.profitability
-            )
-    }
-</td>
+    <td class="day-cell-wide">
+        ${formatMoney(
+            yesterdayFinancial.storage
+        )}
+    </td>
 
-<td>
-    ${
-        yesterday.financial?.margin == null
-            ? '<span class="empty">—</span>'
-            : formatPercent(
-                yesterday.financial.margin
-            )
-    }
-</td>
+    <td class="day-cell-wide">
+        ${formatMoney(
+            yesterdayFinancial.tax
+        )}
+    </td>
+
+    <td class="day-cell-wide">
+        ${formatMoney(
+            yesterdayFinancial.profit
+        )}
+    </td>
+
+    <td class="day-cell-wide">
+        ${
+            yesterdayFinancial.profitability == null
+                ? '<span class="empty">—</span>'
+                : formatPercent(
+                    yesterdayFinancial.profitability
+                )
+        }
+    </td>
+
+    <td class="day-cell-wide">
+        ${
+            yesterdayFinancial.margin == null
+                ? '<span class="empty">—</span>'
+                : formatPercent(
+                    yesterdayFinancial.margin
+                )
+        }
+    </td>
+
 
     <!-- ================== ПОЗАВЧЕРА ================== -->
 
-    <td
-        class="day-separator"
-    >
-
+    <td class="day-separator day-cell-wide">
         ${formatMoney(
             dayBefore.buyerPrice
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell">
         ${formatPercent(
             dayBefore.spp
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell-wide">
         ${formatMoney(
             dayBefore.sellerPrice
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell">
         ${formatNumber(
             dayBefore.advertising?.views || 0
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell">
         ${formatNumber(
             dayBefore.advertising?.clicks || 0
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell">
         ${formatNumber(
             dayBefore.advertising?.atbs || 0
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell">
         ${formatNumber(
             dayBefore.advertising?.cpm || 0,
             2
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell-wide">
         ${formatAdMoney(
             dayBefore.advertising?.spend || 0
         )}
-
     </td>
 
-
-    <td>
-
+    <td class="day-cell">
         ${formatNumber(
             dayBefore.sales
         )}
-
     </td>
-<td>
-    ${formatMoney(
-        dayBefore.financial?.logistics
-    )}
-</td>
 
-<td>
-    ${formatMoney(
-        dayBefore.financial?.storage
-    )}
-</td>
+    <td class="day-cell-wide">
+        ${formatMoney(
+            dayBeforeFinancial.forPay
+        )}
+    </td>
 
-<td>
-    ${formatMoney(
-        dayBefore.financial?.profit
-    )}
-</td>
+    <td class="day-cell-wide">
+        ${formatMoney(
+            dayBeforeFinancial.logistics
+        )}
+    </td>
 
-<td>
-    ${
-        dayBefore.financial?.profitability == null
-            ? '<span class="empty">—</span>'
-            : formatPercent(
-                dayBefore.financial.profitability
-            )
-    }
-</td>
+    <td class="day-cell-wide">
+        ${formatMoney(
+            dayBeforeFinancial.storage
+        )}
+    </td>
 
-<td>
-    ${
-        dayBefore.financial?.margin == null
-            ? '<span class="empty">—</span>'
-            : formatPercent(
-                dayBefore.financial.margin
-            )
-    }
-</td>
+    <td class="day-cell-wide">
+        ${formatMoney(
+            dayBeforeFinancial.tax
+        )}
+    </td>
+
+    <td class="day-cell-wide">
+        ${formatMoney(
+            dayBeforeFinancial.profit
+        )}
+    </td>
+
+    <td class="day-cell-wide">
+        ${
+            dayBeforeFinancial.profitability == null
+                ? '<span class="empty">—</span>'
+                : formatPercent(
+                    dayBeforeFinancial.profitability
+                )
+        }
+    </td>
+
+    <td class="day-cell-wide">
+        ${
+            dayBeforeFinancial.margin == null
+                ? '<span class="empty">—</span>'
+                : formatPercent(
+                    dayBeforeFinancial.margin
+                )
+        }
+    </td>
+
 
     <!-- =================== ИТОГОВЫЕ =================== -->
 
     <td
-        class="day-separator"
+        class="day-separator result-cell"
     >
-
         ${formatNumber(
             product.orders30
         )}
-
     </td>
 
-
-    <td
-        class="stock"
-    >
-
+    <td class="stock result-cell">
         ${formatNumber(
             product.stockToday
         )}
-
     </td>
 
-
-    <td
-        class="days-left"
-    >
+    <td class="days-left result-cell">
 
         ${
             product.daysLeft === null
-
                 ? '<span class="empty">∞</span>'
-
                 : (
                     formatNumber(
                         product.daysLeft,
@@ -1891,29 +2107,17 @@ function render(data) {
 
     </td>
 
-
-    <td
-        class="position"
-    >
-
+    <td class="position result-cell">
         ${formatNumber(
             product.positionToday,
             1
         )}
-
     </td>
 
-
-    <!-- =================== СЕБЕСТОИМОСТЬ =================== -->
-
-    <td
-        class="cost"
-    >
-
+    <td class="cost result-cell">
         ${formatMoney(
             product.cost
         )}
-
     </td>
 
 </tr>
@@ -1928,14 +2132,11 @@ function render(data) {
     // ========================================================
 
     document
-        .getElementById(
-            'tableBody'
-        )
+        .getElementById('tableBody')
         .innerHTML =
             html;
 
 }
-
 
 // ============================================================
 // ЗАГРУЗКА
@@ -2011,7 +2212,7 @@ async function loadData() {
             <tr>
 
                 <td
-                    colspan="47"
+                    colspan="50"
                     class="loading"
                 >
 
@@ -2062,6 +2263,9 @@ async function loadData() {
         }
 
 
+        window.dashboardData =
+            data;
+
         render(
             data
         );
@@ -2101,7 +2305,7 @@ async function loadData() {
                 <tr>
 
                     <td
-                        colspan="47"
+                        colspan="50"
                         class="error"
                     >
 
@@ -2145,6 +2349,58 @@ document
     .addEventListener(
         'click',
         loadData
+    );
+
+
+// ============================================================
+// ФИЛЬТР ПО ТОВАРУ
+// ============================================================
+
+document
+    .getElementById(
+        'productFilter'
+    )
+    .addEventListener(
+        'input',
+        () => {
+
+            if (
+                window.dashboardData
+            ) {
+
+                render(
+                    window.dashboardData
+                );
+
+            }
+
+        }
+    );
+
+
+// ============================================================
+// НУЛЕВЫЕ ПРОДАЖИ
+// ============================================================
+
+document
+    .getElementById(
+        'hideZeroSales'
+    )
+    .addEventListener(
+        'change',
+        () => {
+
+            if (
+                window.dashboardData
+            ) {
+
+                render(
+                    window.dashboardData
+                );
+
+            }
+
+        }
     );
 
 
