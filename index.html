@@ -644,7 +644,25 @@ th.product-header,
 }
 
 .day-separator {
-    border-left: 2px solid #e1e5ea !important;
+    border-left: 2px solid #cfd5dc !important;
+}
+
+.day-end {
+    border-right: 2px solid #cfd5dc !important;
+}
+
+.day-title.day-separator {
+    border-right: 2px solid #cfd5dc !important;
+}
+
+.day-group-cell {
+    border-top: 1px solid #d8dde4 !important;
+    border-bottom: 1px solid #d8dde4 !important;
+}
+
+.promotion-group-title {
+    border-top: 2px solid #bda9ef !important;
+    border-bottom: 2px solid #bda9ef !important;
 }
 
 th.day-col,
@@ -1922,7 +1940,7 @@ function render(data) {
 
             <th
                 colspan="${columns.length}"
-                class="day-title day-separator"
+                class="day-title day-separator day-group-cell"
             >
 
                 ${getDayTitle(
@@ -1953,23 +1971,30 @@ function render(data) {
                 (
                     column,
                     index
-                ) => `
+                ) => {
 
-                    <th
-                        class="${
-                            index === 0
-                                ? 'day-separator '
-                                : ''
-                        }${
-                            column.className || ''
-                        }"
-                    >
+                    const firstClass =
+                        index === 0
+                            ? 'day-separator '
+                            : '';
 
-                        ${column.title}
+                    const lastClass =
+                        index === columns.length - 1
+                            ? 'day-end '
+                            : '';
 
-                    </th>
+                    return `
 
-                `
+                        <th
+                            class="${firstClass}${lastClass}${column.className || ''}"
+                        >
+
+                            ${column.title}
+
+                        </th>
+
+                    `;
+                }
             )
             .join('');
     }
@@ -2029,6 +2054,11 @@ function render(data) {
                             ? 'day-separator '
                             : '';
 
+                    const endSeparator =
+                        index === groups.length - 1
+                            ? 'day-end '
+                            : '';
+
                     const promotion =
                         group.key === 'promotion'
                             ? 'promotion-group-title'
@@ -2037,7 +2067,7 @@ function render(data) {
                     return `
                         <th
                             colspan="${group.count}"
-                            class="${separator}${promotion}"
+                            class="${separator}${endSeparator}${promotion} day-group-cell"
                         >
                             ${titles[group.key] || group.key}
                         </th>
@@ -2232,7 +2262,8 @@ function render(data) {
         day,
         financial,
         changeClasses,
-        isFirst
+        isFirst,
+        isLast
     ) {
 
         let value = '';
@@ -2494,6 +2525,10 @@ function render(data) {
                         ? 'day-separator '
                         : ''
                 }${
+                    isLast
+                        ? 'day-end '
+                        : ''
+                }${
                     column.className || ''
                 } ${
                     extraClass
@@ -2705,7 +2740,8 @@ function render(data) {
                                 day,
                                 day.financial || {},
                                 changeClasses,
-                                columnIndex === 0
+                                columnIndex === 0,
+                                columnIndex === columns.length - 1
                             );
                     }
                 );
