@@ -2208,6 +2208,9 @@ function render(data) {
             >
                 Все заказы<br>30 дней
             </th>
+            <th class="summary-col">
+    Средние заказы<br>за 7 дней
+</th>
 
             <th
                 rowspan="3"
@@ -2772,65 +2775,65 @@ function render(data) {
 
         html += `
 
-                <td
-                    class="day-separator result-col"
-                >
+    <td
+        class="day-separator result-col"
+    >
 
-                    ${formatNumber(
-                        product.orders30
-                    )}
+        ${formatNumber(
+            product.orders30
+        )}
 
-                </td>
+    </td>
 
-                <td
-                    class="stock result-col"
-                >
+    <td
+        class="stock result-col"
+    >
 
-                    ${formatNumber(
-                        product.stockToday
-                    )}
+        ${formatNumber(
+            product.stockToday
+        )}
 
-                </td>
+    </td>
 
-                <td
-                    class="days-left result-col"
-                >
+    <td
+        class="days-left result-col"
+    >
 
-                    ${
-                        product.daysLeft === null
-                            ? '<span class="empty">∞</span>'
-                            : formatNumber(
-                                product.daysLeft,
-                                1
-                            ) + ' дн.'
-                    }
+        ${
+            product.daysLeft === null
+                ? '<span class="empty">∞</span>'
+                : formatNumber(
+                    product.daysLeft,
+                    1
+                ) + ' дн.'
+        }
 
-                </td>
+    </td>
 
-                <td
-                    class="position result-col"
-                >
+    <td
+        class="position result-col"
+    >
 
-                    ${formatNumber(
-                        product.positionToday,
-                        1
-                    )}
+        ${formatNumber(
+            product.positionToday,
+            1
+        )}
 
-                </td>
+    </td>
 
-                <td
-                    class="cost result-col"
-                >
+    <td
+        class="cost result-col"
+    >
 
-                    ${formatMoney(
-                        product.cost
-                    )}
+        ${formatMoney(
+            product.cost
+        )}
 
-                </td>
+    </td>
 
-            </tr>
+</tr>
 
-        `;
+`;
     }
 
 
