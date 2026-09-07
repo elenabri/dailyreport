@@ -2052,17 +2052,33 @@ function render(data) {
     // HEADER
     // ========================================================
 
-    let headerTop = `
+    // В шапке 3 строки:
+    // 1) День
+    // 2) Группа показателей
+    // 3) Конкретные столбцы
+    //
+    // Поэтому Товар и итоговые колонки имеют rowspan="3".
+
+    let headerDays = `
 
         <tr>
 
             <th
-                rowspan="2"
+                rowspan="3"
                 class="product-header"
             >
                 Товар
             </th>
+    `;
 
+
+    let headerGroups = `
+        <tr>
+    `;
+
+
+    let headerColumns = `
+        <tr>
     `;
 
 
@@ -2083,55 +2099,103 @@ function render(data) {
 
 
             if (
-                columns.length > 0
+                !columns.length
             ) {
-
-                headerTop +=
-                    renderDayTitle(
-                        day,
-                        index,
-                        visibleDateValues.length,
-                        columns
-                    );
-
+                return;
             }
+
+
+            // -----------------------------------------------
+            // СТРОКА ДНЕЙ
+            // -----------------------------------------------
+
+            headerDays += `
+
+                <th
+                    colspan="${columns.length}"
+                    class="day-title day-separator"
+                >
+
+                    ${getDayTitle(
+                        index,
+                        visibleDateValues.length
+                    )}
+
+                    <span class="day-date">
+
+                        ${formatDate(
+                            day.date
+                        )}
+
+                    </span>
+
+                </th>
+
+            `;
+
+
+            // -----------------------------------------------
+            // СТРОКА ГРУПП
+            // -----------------------------------------------
+
+            headerGroups +=
+                renderGroupHeader(
+                    columns
+                );
+
+
+            // -----------------------------------------------
+            // СТРОКА КОЛОНОК
+            // -----------------------------------------------
+
+            headerColumns +=
+                renderColumnsHeader(
+                    columns
+                );
 
         }
     );
 
 
-    headerTop += `
+    // ========================================================
+    // ИТОГОВЫЕ КОЛОНКИ
+    //
+    // Они должны быть в ПЕРВОЙ строке и иметь rowspan="3",
+    // чтобы не создавать сдвиг между заголовком и значениями.
+    // ========================================================
+
+    headerDays += `
 
             <th
-                rowspan="2"
+                rowspan="3"
                 class="day-separator result-col"
             >
-                Заказы<br>30 дней
+                Все заказы<br>30 дней
             </th>
 
             <th
-                rowspan="2"
+                rowspan="3"
                 class="result-col"
             >
                 Остаток<br>сегодня
             </th>
 
             <th
-                rowspan="2"
+                rowspan="3"
                 class="result-col"
             >
                 Хватит<br>на
             </th>
 
             <th
-                rowspan="2"
+                rowspan="3"
                 class="result-col"
             >
                 Позиция
             </th>
 
             <th
-                rowspan="2"
+                rowspan="3"
                 class="result-col"
             >
                 Себестоимость
@@ -2141,56 +2205,22 @@ function render(data) {
     `;
 
 
-    let headerGroups = '<tr>';
-    let headerBottom = '<tr>';
+    headerGroups += `
+        </tr>
+    `;
 
 
-    visibleDateValues.forEach(
-        (
-            day,
-            index
-        ) => {
-
-            const isToday =
-                index === 0;
-
-
-            const columns =
-                isToday
-                    ? todayColumns
-                    : historicalColumns;
-
-
-            if (
-                columns.length > 0
-            ) {
-
-                headerGroups +=
-                    renderGroupHeader(
-                        columns
-                    );
-
-                headerBottom +=
-                    renderColumnsHeader(
-                        columns
-                    );
-
-            }
-
-        }
-    );
-
-
-    headerGroups += '</tr>';
-    headerBottom += '</tr>';
+    headerColumns += `
+        </tr>
+    `;
 
 
     document
         .getElementById('tableHead')
         .innerHTML =
-            headerTop +
+            headerDays +
             headerGroups +
-            headerBottom;
+            headerColumns;
 
 
     // ========================================================
