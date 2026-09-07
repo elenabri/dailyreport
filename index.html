@@ -1484,31 +1484,32 @@ function render(data) {
                 // --------------------------------------------
 
                 if (
-                    hideZeroSales
-                ) {
+    hideZeroSales
+) {
 
-                    const sales =
-                        visibleDays.reduce(
-                            (
-                                sum,
-                                day
-                            ) =>
-                                sum +
-                                Number(
-                                    day?.sales ||
-                                    0
-                                ),
-                            0
-                        );
+    const orders =
+        visibleDays.reduce(
+            (
+                sum,
+                day
+            ) =>
+                sum +
+                Number(
+                    day?.allOrders ??
+                    day?.orders ??
+                    0
+                ),
+            0
+        );
 
 
-                    if (
-                        sales <= 0
-                    ) {
+    if (
+        orders <= 0
+    ) {
 
-                        return false;
-                    }
-                }
+        return false;
+    }
+}
 
 
                 // --------------------------------------------
