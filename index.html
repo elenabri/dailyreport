@@ -161,567 +161,232 @@ button:disabled {
 
 
 /* =========================================================
-   TABLE
+   КОМПАКТНАЯ ТАБЛИЦА
    ========================================================= */
 
-.table-container {
-
-    background:
-        white;
-
-    border:
-        1px solid #e5e7eb;
-
-    border-radius:
-        12px;
-
-    overflow:
-        auto;
-
-    box-shadow:
-        0 2px 7px
-        rgba(0,0,0,.03);
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
 }
 
-
-table {
-
-    border-collapse:
-        separate;
-
-    border-spacing:
-        0;
-
-    width:
-        100%;
-
-    min-width:
-        1280px;
-
-    table-layout:
-        auto;
+body {
+    font-size: 11px;
 }
 
+.container {
+    max-width: none;
+    width: 100%;
+    height: 100vh;
+    margin: 0;
+    padding: 10px 12px;
+    overflow: hidden;
+}
+
+.header {
+    margin-bottom: 8px;
+}
+
+.title {
+    font-size: 18px;
+}
+
+.header-right {
+    gap: 8px;
+}
+
+#status {
+    font-size: 10px;
+}
+
+button {
+    padding: 7px 10px;
+    font-size: 11px;
+}
 
 /* =========================================================
-   HEADER CELLS
-   ========================================================= */
-
-th {
-
-    position:
-        sticky;
-
-    top:
-        0;
-
-    z-index:
-        5;
-
-    background:
-        #fafbfc;
-
-    color:
-        #68707c;
-
-    font-size:
-        11px;
-
-    font-weight:
-        700;
-
-    padding:
-        7px;
-
-    border-bottom:
-        1px solid #e5e7eb;
-
-    white-space:
-        nowrap;
-
-    text-align:
-        right;
-}
-
-
-/* =========================================================
-   ТОВАР
-   ========================================================= */
-
-th.product-header {
-
-    text-align:
-        center;
-
-    width:
-        235px;
-
-    min-width:
-        235px;
-
-    max-width:
-        235px;
-}
-
-
-/* =========================================================
-   ЗАГОЛОВКИ ДНЕЙ
-   ========================================================= */
-
-.day-title {
-
-    text-align:
-        center;
-
-    font-size:
-        12px;
-
-    color:
-        #242932;
-}
-
-
-.day-date {
-
-    display:
-        block;
-
-    color:
-        #8b919a;
-
-    font-size:
-        10px;
-
-    font-weight:
-        400;
-
-    margin-top:
-        2px;
-}
-
-
-/* =========================================================
-   TABLE CELLS
-   ========================================================= */
-
-td {
-
-    padding:
-        7px;
-
-    border-bottom:
-        1px solid #edf0f3;
-
-    white-space:
-        nowrap;
-
-    text-align:
-        right;
-
-    font-variant-numeric:
-        tabular-nums;
-}
-
-
-tbody tr:hover td {
-
-    background:
-        #fafcff;
-}
-
-
-/* =========================================================
-   PRODUCT
-   ========================================================= */
-
-.product-cell {
-
-    width:
-        235px;
-
-    min-width:
-        235px;
-
-    max-width:
-        235px;
-
-    text-align:
-        left;
-
-    white-space:
-        normal;
-
-    overflow:
-        hidden;
-
-    vertical-align:
-        middle;
-}
-
-
-.product-name {
-
-    font-weight:
-        600;
-
-    line-height:
-        1.25;
-
-    overflow:
-        hidden;
-
-    display:
-        -webkit-box;
-
-    -webkit-box-orient:
-        vertical;
-
-    -webkit-line-clamp:
-        3;
-
-    line-clamp:
-        3;
-
-    white-space:
-        normal;
-
-    overflow-wrap:
-        anywhere;
-}
-
-
-.product-article {
-
-    color:
-        #858b95;
-
-    font-size:
-        11px;
-
-    margin-top:
-        3px;
-
-    overflow:
-        hidden;
-
-    text-overflow:
-        ellipsis;
-
-    white-space:
-        nowrap;
-}
-
-
-/* =========================================================
-   РАЗДЕЛИТЕЛЬ ДНЕЙ
-   ========================================================= */
-
-.day-separator {
-
-    border-left:
-        2px solid #e9ebef !important;
-}
-
-
-/* =========================================================
-   ПОДСВЕТКА
-   ========================================================= */
-
-.up {
-
-    background:
-        #dff5e6 !important;
-
-    color:
-        #14783b;
-
-    font-weight:
-        700;
-}
-
-
-.down {
-
-    background:
-        #ffe1e1 !important;
-
-    color:
-        #b42318;
-
-    font-weight:
-        700;
-}
-
-
-.same {
-
-    color:
-        #505762;
-}
-
-
-/* =========================================================
-   OTHER
-   ========================================================= */
-
-.stock {
-
-    font-weight:
-        700;
-}
-
-
-.days-left {
-
-    font-weight:
-        700;
-}
-
-
-.position {
-
-    font-weight:
-        700;
-}
-
-
-.cost {
-
-    font-weight:
-        700;
-}
-
-
-.empty {
-
-    color:
-        #a3a8b0;
-}
-
-
-.error {
-
-    padding:
-        35px;
-
-    text-align:
-        center;
-
-    color:
-        #b42318;
-}
-
-
-.loading {
-
-    padding:
-        35px;
-
-    text-align:
-        center;
-
-    color:
-        #858b95;
-}
-
-
-/* =========================================================
-   MOBILE
-   ========================================================= */
-
-@media (
-    max-width: 800px
-) {
-
-    .container {
-
-        padding:
-            10px;
-    }
-
-
-    .header {
-
-        align-items:
-            flex-start;
-
-        flex-direction:
-            column;
-
-        gap:
-            10px;
-    }
-
-
-    .header-right {
-
-        width:
-            100%;
-
-        justify-content:
-            space-between;
-    }
-
-
-    .product-cell,
-    th.product-header {
-
-        width:
-            190px;
-
-        min-width:
-            190px;
-
-        max-width:
-            190px;
-    }
-
-}
-
-
-/* =========================================================
-   ФИЛЬТРЫ ТОВАРОВ
+   ФИЛЬТРЫ
    ========================================================= */
 
 .table-filters {
-
     display: flex;
-
-    align-items: flex-end;
-
-    gap: 18px;
-
-    margin-bottom: 12px;
-
-    padding: 10px 12px;
-
-    background: white;
-
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 7px;
+    padding: 6px 8px;
+    background: #fff;
     border: 1px solid #e5e7eb;
-
-    border-radius: 12px;
+    border-radius: 8px;
 }
 
 .filter-group {
-
     display: flex;
-
-    flex-direction: column;
-
-    gap: 5px;
-
-    width: 420px;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    width: 300px;
 }
 
 .filter-group label {
-
-    color: #68707c;
-
-    font-size: 11px;
-
-    font-weight: 700;
+    font-size: 10px;
+    white-space: nowrap;
 }
 
 #productFilter {
-
     width: 100%;
-
-    height: 36px;
-
-    padding: 0 11px;
-
-    border: 1px solid #d9dde3;
-
-    border-radius: 8px;
-
-    outline: none;
-
-    background: white;
-
-    color: #20242b;
-
-    font-size: 13px;
-}
-
-#productFilter:focus {
-
-    border-color: #9aa2ad;
+    height: 28px;
+    padding: 0 8px;
+    font-size: 11px;
+    border-radius: 6px;
 }
 
 .zero-sales-filter {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 7px;
-
-    height: 36px;
-
-    color: #3f4650;
-
-    font-size: 12px;
-
-    cursor: pointer;
-
-    user-select: none;
+    height: 28px;
+    font-size: 10px;
 }
 
 .zero-sales-filter input {
-
-    width: 16px;
-
-    height: 16px;
-
-    margin: 0;
-
-    cursor: pointer;
+    width: 14px;
+    height: 14px;
 }
 
 /* =========================================================
-   РОВНЫЕ КОЛОНКИ
+   ТАБЛИЦА
    ========================================================= */
 
-table {
-
-    table-layout: fixed;
-
-    min-width: 2300px;
-}
-
-.day-cell {
-
-    width: 82px;
-
-    min-width: 82px;
-
-    max-width: 82px;
-}
-
-.day-cell-wide {
-
-    width: 100px;
-
-    min-width: 100px;
-
-    max-width: 100px;
-}
-
-.result-cell {
-
-    width: 95px;
-
-    min-width: 95px;
-
-    max-width: 95px;
-}
-
-th,
-td {
-
+.table-container {
+    width: 100%;
+    height: calc(100vh - 103px);
     overflow: hidden;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 2px 7px rgba(0,0,0,.03);
+}
 
-    text-overflow: ellipsis;
+table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 8px;
+}
+
+th {
+    padding: 3px 2px;
+    font-size: 7px;
+    line-height: 1.05;
+    white-space: normal;
+    text-align: center;
+}
+
+td {
+    padding: 3px 2px;
+    font-size: 8px;
+    line-height: 1.05;
+    white-space: nowrap;
+    text-align: right;
+}
+
+th.product-header,
+.product-cell {
+    width: 155px;
+    min-width: 155px;
+    max-width: 155px;
+}
+
+.product-name {
+    font-size: 8px;
+    line-height: 1.08;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+
+.product-article {
+    font-size: 7px;
+    margin-top: 2px;
+}
+
+.day-title {
+    font-size: 9px;
+    padding: 3px 1px;
+}
+
+.day-date {
+    font-size: 7px;
+    margin-top: 1px;
+}
+
+.day-separator {
+    border-left: 1px solid #e9ebef !important;
+}
+
+.empty {
+    font-size: 8px;
+}
+
+/* Узкие рабочие колонки */
+th:not(.product-header),
+td:not(.product-cell) {
+    width: auto;
+}
+
+/* Финансовые и итоговые колонки чуть шире */
+thead tr:nth-child(2) th:nth-child(10),
+thead tr:nth-child(2) th:nth-child(11),
+thead tr:nth-child(2) th:nth-child(12),
+thead tr:nth-child(2) th:nth-child(13),
+thead tr:nth-child(2) th:nth-child(14),
+thead tr:nth-child(2) th:nth-child(15),
+thead tr:nth-child(2) th:nth-child(16),
+thead tr:nth-child(2) th:nth-child(17),
+thead tr:nth-child(2) th:nth-child(18),
+thead tr:nth-child(2) th:nth-child(19),
+thead tr:nth-child(2) th:nth-child(20),
+thead tr:nth-child(2) th:nth-child(21),
+thead tr:nth-child(2) th:nth-child(22),
+thead tr:nth-child(2) th:nth-child(23),
+thead tr:nth-child(2) th:nth-child(24),
+thead tr:nth-child(2) th:nth-child(25),
+thead tr:nth-child(2) th:nth-child(26) {
+    width: 49px;
+}
+
+/* =========================================================
+   ПОДГОН ПОД РАЗМЕР ЭКРАНА
+   ========================================================= */
+
+@media (min-width: 1600px) {
+    table {
+        zoom: 0.88;
+        width: 113.64%;
+    }
+}
+
+@media (min-width: 1900px) {
+    table {
+        zoom: 0.96;
+        width: 104.17%;
+    }
+}
+
+@media (max-width: 1599px) {
+    table {
+        zoom: 0.72;
+        width: 138.89%;
+    }
+}
+
+@media (max-width: 1100px) {
+    table {
+        zoom: 0.58;
+        width: 172.41%;
+    }
+
+    .filter-group {
+        width: 240px;
+    }
 }
 
 </style>
