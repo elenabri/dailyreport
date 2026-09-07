@@ -660,6 +660,15 @@ th.product-header,
     border-bottom: 1px solid #d8dde4 !important;
 }
 
+
+.moysklad-group-title {
+    background: #eef2f6 !important;
+    color: #374151 !important;
+    border-left: 2px solid #aeb7c2 !important;
+    border-right: 2px solid #aeb7c2 !important;
+    font-weight: 800;
+}
+
 .promotion-group-title {
     border-top: 2px solid #bda9ef !important;
     border-bottom: 2px solid #bda9ef !important;
@@ -976,14 +985,14 @@ tbody tr:hover td.product-cell {
             <label><input type="checkbox" data-column="adClicks" checked><span>Клики</span></label>
             <label><input type="checkbox" data-column="adCarts" checked><span>Корзины</span></label>
             <label><input type="checkbox" data-column="adCpm" checked><span>CPM</span></label>
-            <label><input type="checkbox" data-column="adSpend" checked><span>Затраты</span></label>
+            <label><input type="checkbox" data-column="adSpend"><span>Затраты</span></label>
             <label><input type="checkbox" data-column="adOrders" checked><span>Заказы</span></label>
             <label><input type="checkbox" data-column="adOrdersAmount" checked><span>Сумма заказов</span></label>
 
             <label><input type="checkbox" data-column="allOrders" checked><span>Все заказы</span></label>
             <label><input type="checkbox" data-column="sales" checked><span>Продажи</span></label>
 
-            <label><input type="checkbox" data-column="retailSales"><span>Оборот</span></label>
+            <label><input type="checkbox" data-column="retailSales" checked><span>Оборот</span></label>
 
             <label><input type="checkbox" data-column="forPay"><span>К перечислению</span></label>
             <label><input type="checkbox" data-column="logistics"><span>Логистика</span></label>
@@ -2222,7 +2231,7 @@ function render(data) {
                 rowspan="3"
                 class="result-col"
             >
-                Средние продажи<br>за 7 дней
+                Средние заказы<br>за 7 дней
             </th>
 
             <th
@@ -2246,23 +2255,37 @@ function render(data) {
                 Позиция
             </th>
 
-            <th
-                rowspan="3"
-                class="result-col"
-            >
-                Себестоимость
-            </th>
-
         </tr>
     `;
 
 
     headerGroups += `
+
+        <th
+            colspan="2"
+            class="moysklad-group-title day-group-cell result-col"
+        >
+            МойСклад
+        </th>
+
         </tr>
     `;
 
 
     headerColumns += `
+
+        <th
+            class="result-col"
+        >
+            Себестоимость
+        </th>
+
+        <th
+            class="result-col"
+        >
+            Основной склад
+        </th>
+
         </tr>
     `;
 
@@ -2813,8 +2836,17 @@ function render(data) {
                 >
 
                     ${formatNumber(
-                        product.averageSales7
-                        ,
+                        allDays
+                            .slice(-7)
+                            .reduce(
+                                (sum, day) =>
+                                    sum +
+                                    Number(
+                                        day?.orders ||
+                                        0
+                                    ),
+                                0
+                            ) / 7,
                         1
                     )}
 
@@ -2862,6 +2894,17 @@ function render(data) {
 
                     ${formatMoney(
                         product.cost
+                    )}
+
+                </td>
+
+                <td
+                    class="stock result-col"
+                >
+
+                    ${formatNumber(
+                        product.mainStock ??
+                        0
                     )}
 
                 </td>
