@@ -860,6 +860,180 @@ tbody tr:hover td.product-cell {
 .column-chooser[open] summary::after {
     content: '−';
 }
+
+
+.header-refresh-button {
+    min-width: 118px;
+    height: 38px;
+    padding: 0 18px;
+    border: 1px solid #d9dde5;
+    border-radius: 10px;
+    background: #fff;
+    color: #20242b;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(17,24,39,.06);
+}
+
+.header-refresh-button:hover {
+    background: #f7f8fa;
+}
+
+.table-empty-state {
+    height: 260px;
+    padding: 40px 20px !important;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* =========================================================
+   СТАРТОВЫЙ ЭКРАН
+   ========================================================= */
+
+
+.big-load-button {
+    min-width: 300px;
+    min-height: 76px;
+    padding: 18px 34px;
+    border-radius: 16px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: .1px;
+    box-shadow: 0 10px 28px rgba(17, 24, 39, .14);
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.big-load-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 34px rgba(17, 24, 39, .18);
+}
+
+.big-load-button:disabled {
+    transform: none;
+}
+
+/* =========================================================
+   ОКНО ЗАГРУЗКИ
+   ========================================================= */
+
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(20, 24, 31, .38);
+    backdrop-filter: blur(5px);
+}
+
+.loading-overlay.visible {
+    display: flex;
+}
+
+.loading-modal {
+    width: min(460px, calc(100vw - 34px));
+    padding: 30px 30px 28px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, .24);
+}
+
+.modal-spinner {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 17px;
+    border: 4px solid #e6e9ee;
+    border-top-color: #111827;
+    border-radius: 50%;
+    animation: dashboardSpin .85s linear infinite;
+}
+
+@keyframes dashboardSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-title {
+    text-align: center;
+    font-size: 21px;
+    font-weight: 700;
+}
+
+.loading-subtitle {
+    margin-top: 6px;
+    margin-bottom: 22px;
+    text-align: center;
+    color: #838a95;
+    font-size: 12px;
+}
+
+.operation-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.operation {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-height: 34px;
+    padding: 6px 9px;
+    border-radius: 9px;
+    color: #7d8591;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.operation-mark {
+    width: 21px;
+    height: 21px;
+    flex: 0 0 21px;
+    border: 2px solid #cdd2da;
+    border-radius: 50%;
+    background: #fff;
+}
+
+.operation.active {
+    color: #20242b;
+    background: #f6f7f9;
+}
+
+.operation.active .operation-mark {
+    border-color: #6b7280;
+}
+
+.operation.done {
+    color: #1f2937;
+}
+
+.operation.done .operation-mark {
+    position: relative;
+    border-color: #22c55e;
+    background: #22c55e;
+}
+
+.operation.done .operation-mark::after {
+    content: '✓';
+    position: absolute;
+    left: 3px;
+    top: -1px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+@media (max-width: 700px) {
+    .big-load-button {
+        min-width: 240px;
+        min-height: 66px;
+        font-size: 19px;
+    }
+}
+
 </style>
 
 </head>
@@ -894,15 +1068,83 @@ tbody tr:hover td.product-cell {
 
 
         <div class="header-right">
+            <button
+                id="headerRefreshButton"
+                class="header-refresh-button"
+                type="button"
+                style="display:none"
+            >
+                Обновить
+            </button>
+            <div id="status"></div>
+        </div>
 
-            <div id="status">
+    </div>
+
+
+    <!-- =====================================================
+         ОКНО ЗАГРУЗКИ
+         ===================================================== -->
+
+    <div
+        id="loadingOverlay"
+        class="loading-overlay"
+        aria-hidden="true"
+    >
+
+        <div class="loading-modal">
+
+            <div class="modal-spinner"></div>
+
+            <div class="loading-title">
+                Получаем данные
             </div>
 
-            <button
-                id="refreshButton"
+            <div class="loading-subtitle">
+                Дождитесь завершения всех операций
+            </div>
+
+            <div
+                id="operationList"
+                class="operation-list"
             >
-                Получить данные
-            </button>
+
+                <div class="operation" data-operation="orders">
+                    <span class="operation-mark"></span>
+                    <span>ЗАКАЗЫ</span>
+                </div>
+
+                <div class="operation" data-operation="prices">
+                    <span class="operation-mark"></span>
+                    <span>ЦЕНЫ ПРОДАВЦА</span>
+                </div>
+
+                <div class="operation" data-operation="stocks">
+                    <span class="operation-mark"></span>
+                    <span>ОСТАТКИ</span>
+                </div>
+
+                <div class="operation" data-operation="moysklad">
+                    <span class="operation-mark"></span>
+                    <span>МОЙСКЛАД</span>
+                </div>
+
+                <div class="operation" data-operation="advertising">
+                    <span class="operation-mark"></span>
+                    <span>РЕКЛАМА</span>
+                </div>
+
+                <div class="operation" data-operation="finance">
+                    <span class="operation-mark"></span>
+                    <span>ФИНАНСЫ</span>
+                </div>
+
+                <div class="operation" data-operation="storage">
+                    <span class="operation-mark"></span>
+                    <span>ХРАНЕНИЕ</span>
+                </div>
+
+            </div>
 
         </div>
 
@@ -985,14 +1227,14 @@ tbody tr:hover td.product-cell {
             <label><input type="checkbox" data-column="adClicks" checked><span>Клики</span></label>
             <label><input type="checkbox" data-column="adCarts" checked><span>Корзины</span></label>
             <label><input type="checkbox" data-column="adCpm" checked><span>CPM</span></label>
-            <label><input type="checkbox" data-column="adSpend"><span>Затраты</span></label>
+            <label><input type="checkbox" data-column="adSpend" checked><span>Затраты</span></label>
             <label><input type="checkbox" data-column="adOrders" checked><span>Заказы</span></label>
             <label><input type="checkbox" data-column="adOrdersAmount" checked><span>Сумма заказов</span></label>
 
             <label><input type="checkbox" data-column="allOrders" checked><span>Все заказы</span></label>
             <label><input type="checkbox" data-column="sales" checked><span>Продажи</span></label>
 
-            <label><input type="checkbox" data-column="retailSales" checked><span>Оборот</span></label>
+            <label><input type="checkbox" data-column="retailSales"><span>Оборот</span></label>
 
             <label><input type="checkbox" data-column="forPay"><span>К перечислению</span></label>
             <label><input type="checkbox" data-column="logistics"><span>Логистика</span></label>
@@ -1029,9 +1271,15 @@ tbody tr:hover td.product-cell {
 
                     <td
                         colspan="60"
-                        class="loading"
+                        class="table-empty-state"
                     >
-                        Загрузка данных WB...
+                        <button
+                            id="refreshButton"
+                            class="big-load-button"
+                            type="button"
+                        >
+                            Получить данные
+                        </button>
                     </td>
 
                 </tr>
@@ -2939,6 +3187,86 @@ function render(data) {
 let loadingData = false;
 
 
+function resetLoadingOperations() {
+
+    document
+        .querySelectorAll(
+            '#operationList .operation'
+        )
+        .forEach(
+            operation => {
+                operation.classList.remove(
+                    'active',
+                    'done'
+                );
+            }
+        );
+}
+
+
+function setActiveOperation(
+    operationName
+) {
+
+    document
+        .querySelectorAll(
+            '#operationList .operation'
+        )
+        .forEach(
+            operation => {
+
+                if (
+                    operation.dataset.operation ===
+                    operationName
+                ) {
+
+                    operation.classList.add(
+                        'active'
+                    );
+                }
+            }
+        );
+}
+
+
+function markAllOperationsDone() {
+
+    document
+        .querySelectorAll(
+            '#operationList .operation'
+        )
+        .forEach(
+            operation => {
+                operation.classList.remove(
+                    'active'
+                );
+                operation.classList.add(
+                    'done'
+                );
+            }
+        );
+}
+
+
+function closeLoadingOverlay() {
+
+    const loadingOverlay =
+        document.getElementById(
+            'loadingOverlay'
+        );
+
+    loadingOverlay.classList.remove(
+        'visible'
+    );
+
+    loadingOverlay.setAttribute(
+        'aria-hidden',
+        'true'
+    );
+}
+
+
+
 // ============================================================
 // ЗАГРУЗКА ДАННЫХ
 //
@@ -2968,6 +3296,11 @@ async function loadData() {
             'refreshButton'
         );
 
+    const headerRefreshButton =
+        document.getElementById(
+            'headerRefreshButton'
+        );
+
 
     const status =
         document.getElementById(
@@ -2975,17 +3308,36 @@ async function loadData() {
         );
 
 
+
+    const loadingOverlay =
+        document.getElementById(
+            'loadingOverlay'
+        );
+
+
     button.disabled =
         true;
 
 
-    button.textContent =
-        '↻ Обновляем...';
-
-
     status.textContent =
-        'Обновляем данные WB...';
+        'Обновление...';
 
+
+
+    loadingOverlay.classList.add(
+        'visible'
+    );
+
+    loadingOverlay.setAttribute(
+        'aria-hidden',
+        'false'
+    );
+
+    resetLoadingOperations();
+
+    setActiveOperation(
+        'orders'
+    );
 
     document
         .getElementById(
@@ -2999,12 +3351,7 @@ async function loadData() {
                     colspan="60"
                     class="loading"
                 >
-
-                    Получаем данные из WB...
-
-                    Это может занять
-                    несколько минут.
-
+                    &nbsp;
                 </td>
 
             </tr>
@@ -3060,6 +3407,13 @@ async function loadData() {
         );
 
 
+        markAllOperationsDone();
+
+        if (headerRefreshButton) {
+            headerRefreshButton.style.display = 'inline-flex';
+        }
+
+
         const updated =
             new Date(
                 data.updatedAt
@@ -3083,6 +3437,31 @@ async function loadData() {
 
         status.textContent =
             'Ошибка';
+
+        if (headerRefreshButton) {
+            headerRefreshButton.style.display = 'none';
+        }
+
+        document
+            .getElementById('tableBody')
+            .innerHTML = `
+                <tr>
+                    <td colspan="60" class="table-empty-state">
+                        <div style="margin-bottom:12px;color:#c0392b;font-size:13px">
+                            ${escapeHtml(error.message)}
+                        </div>
+                        <button id="refreshButton" class="big-load-button" type="button">
+                            Получить данные
+                        </button>
+                    </td>
+                </tr>
+            `;
+
+        document
+            .getElementById('refreshButton')
+            .addEventListener('click', loadData);
+
+        closeLoadingOverlay();
 
 
         document
@@ -3115,12 +3494,15 @@ async function loadData() {
             false;
 
 
-        button.disabled =
-            false;
+        if (button) {
+            button.disabled = false;
+        }
 
+        if (headerRefreshButton) {
+            headerRefreshButton.disabled = false;
+        }
 
-        button.textContent =
-            'Получить данные';
+        closeLoadingOverlay();
 
     }
 
@@ -3134,6 +3516,16 @@ async function loadData() {
 document
     .getElementById(
         'refreshButton'
+    )
+    .addEventListener(
+        'click',
+        loadData
+    );
+
+
+document
+    .getElementById(
+        'headerRefreshButton'
     )
     .addEventListener(
         'click',
