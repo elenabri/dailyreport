@@ -605,6 +605,16 @@ async function wbPostRetry(
 
 // ============================================================
 // РЕКЛАМА — FULLSTATS
+//
+// dateFrom / dateTo приходят из buildDashboard().
+//
+// ВАЖНО:
+// функция НЕ ограничивает кампании последними 3 днями.
+//
+// Берём все подходящие кампании из promotion/count,
+// а затем FULLSTATS запрашиваем именно за dateFrom -> dateTo.
+//
+// Это позволяет работать с диапазоном от 1 до 7 дней.
 // ============================================================
 
 async function getPromotionStats(
@@ -613,22 +623,30 @@ async function getPromotionStats(
 ) {
 
     console.log('');
+
     console.log(
         '========================================'
     );
+
     console.log(
         'ПОЛУЧАЕМ РЕКЛАМУ WB'
     );
+
     console.log(
         `${dateFrom} -> ${dateTo}`
     );
+
+    console.log(
+        'ДИАПАЗОН РЕКЛАМЫ ИСПОЛЬЗУЕТСЯ ПОЛНОСТЬЮ'
+    );
+
     console.log(
         '========================================'
     );
 
 
     // --------------------------------------------------------
-    // Получаем кампании
+    // 1. Получаем список рекламных кампаний
     // --------------------------------------------------------
 
     const promotionUrl =
@@ -649,14 +667,16 @@ async function getPromotionStats(
             : [];
 
 
-    const threeDaysAgo =
-        Date.now() -
-        3 *
-        24 *
-        60 *
-        60 *
-        1000;
-
+    // --------------------------------------------------------
+    // 2. Собираем ID кампаний
+    //
+    // Больше НЕТ ограничения:
+    // "изменена за последние 3 дня".
+    //
+    // Для корректного отчёта за выбранный период
+    // нам нужны все кампании, которые доступны
+    // в списке promotion/count.
+    // --------------------------------------------------------
 
     const uniqueIds =
         new Set();
@@ -665,12 +685,6 @@ async function getPromotionStats(
     for (
         const group of groups
     ) {
-
-        const status =
-            Number(
-                group?.status
-            );
-
 
         const list =
             Array.isArray(
@@ -702,40 +716,9 @@ async function getPromotionStats(
             }
 
 
-            if (
-                status === 9
-            ) {
-
-                uniqueIds.add(
-                    advertId
-                );
-
-                continue;
-
-            }
-
-
-            const changeTime =
-                advert?.changeTime
-                    ? new Date(
-                        advert.changeTime
-                    ).getTime()
-                    : NaN;
-
-
-            if (
-                Number.isFinite(
-                    changeTime
-                ) &&
-                changeTime >=
-                    threeDaysAgo
-            ) {
-
-                uniqueIds.add(
-                    advertId
-                );
-
-            }
+            uniqueIds.add(
+                advertId
+            );
 
         }
 
@@ -743,7 +726,9 @@ async function getPromotionStats(
 
 
     const campaignIds =
-        [...uniqueIds];
+        [
+            ...uniqueIds
+        ];
 
 
     console.log(
@@ -756,13 +741,19 @@ async function getPromotionStats(
         !campaignIds.length
     ) {
 
+        console.log(
+            'Рекламных кампаний нет.'
+        );
+
         return {};
 
     }
 
 
     // --------------------------------------------------------
-    // FULLSTATS максимум 50 кампаний
+    // 3. FULLSTATS
+    //
+    // Максимум 50 кампаний за один запрос.
     // --------------------------------------------------------
 
     const result = {};
@@ -782,6 +773,7 @@ async function getPromotionStats(
 
 
         console.log('');
+
         console.log(
             `FULLSTATS ${
                 i + 1
@@ -796,11 +788,23 @@ async function getPromotionStats(
         );
 
 
+        // ----------------------------------------------------
+        // ВАЖНО:
+        // здесь передаём именно выбранный диапазон.
+        // ----------------------------------------------------
+
         const url =
             'https://advert-api.wildberries.ru/adv/v3/fullstats' +
+
             `?ids=${batch.join(',')}` +
-            `&beginDate=${dateFrom}` +
-            `&endDate=${dateTo}`;
+
+            `&beginDate=${encodeURIComponent(
+                dateFrom
+            )}` +
+
+            `&endDate=${encodeURIComponent(
+                dateTo
+            )}`;
 
 
         const stats =
@@ -824,6 +828,10 @@ async function getPromotionStats(
 
         }
 
+
+        // ----------------------------------------------------
+        // 4. Разбираем дни
+        // ----------------------------------------------------
 
         for (
             const campaign of stats
@@ -850,7 +858,24 @@ async function getPromotionStats(
                     );
 
 
-                if (!date) {
+                if (
+                    !date
+                ) {
+
+                    continue;
+
+                }
+
+
+                // ------------------------------------------------
+                // На всякий случай не принимаем дни
+                // вне выбранного диапазона.
+                // ------------------------------------------------
+
+                if (
+                    date < dateFrom ||
+                    date > dateTo
+                ) {
 
                     continue;
 
@@ -887,7 +912,12 @@ async function getPromotionStats(
                             );
 
 
-                        if (!nmId) {
+                        if (
+                            !Number.isFinite(
+                                nmId
+                            ) ||
+                            nmId <= 0
+                        ) {
 
                             continue;
 
@@ -898,7 +928,8 @@ async function getPromotionStats(
                             !result[nmId]
                         ) {
 
-                            result[nmId] = {};
+                            result[nmId] =
+                                {};
 
                         }
 
@@ -966,6 +997,10 @@ async function getPromotionStats(
         }
 
 
+        // ----------------------------------------------------
+        // Пауза между FULLSTATS
+        // ----------------------------------------------------
+
         if (
             i + 50 <
             campaignIds.length
@@ -986,12 +1021,14 @@ async function getPromotionStats(
 
 
     // --------------------------------------------------------
-    // CPM
+    // 5. CPM
     // --------------------------------------------------------
 
     for (
         const nmId of
-        Object.keys(result)
+        Object.keys(
+            result
+        )
     ) {
 
         for (
@@ -1015,6 +1052,7 @@ async function getPromotionStats(
 
             item.cpm =
                 item.views > 0
+
                     ? Number(
                         (
                             item.spend /
@@ -1024,6 +1062,7 @@ async function getPromotionStats(
                             2
                         )
                     )
+
                     : 0;
 
         }
@@ -1031,8 +1070,36 @@ async function getPromotionStats(
     }
 
 
-    return result;
+    console.log('');
 
+    console.log(
+        '========================================'
+    );
+
+    console.log(
+        'РЕКЛАМА: ЛОКАЛЬНАЯ ОБРАБОТКА ЗАВЕРШЕНА'
+    );
+
+    console.log(
+        'Диапазон:',
+        dateFrom,
+        '->',
+        dateTo
+    );
+
+    console.log(
+        'Товаров с рекламой:',
+        Object.keys(
+            result
+        ).length
+    );
+
+    console.log(
+        '========================================'
+    );
+
+
+    return result;
 }
 
 
