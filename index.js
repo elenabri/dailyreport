@@ -3612,11 +3612,11 @@ async function getDailyFinancials(
         // ====================================================
 
         const operation =
-            String(
-                row?.docTypeName ||
-                row?.sellerOperName ||
-                ''
-            ).trim();
+    String(
+        row?.sellerOperName ||
+        row?.docTypeName ||
+        ''
+    ).trim();
 
 
         const quantity =
@@ -3736,18 +3736,24 @@ async function getDailyFinancials(
         // ЛОГИСТИКА
         // ====================================================
 
-        if (
-            operation ===
-            'Логистика'
-        ) {
+        const deliveryAmount =
+    Number(
+        row?.deliveryAmount ||
+        0
+    );
 
-            item.logistics +=
-                Number(
-                    row?.deliveryAmount ||
-                    0
-                );
 
-        }
+if (
+    Number.isFinite(
+        deliveryAmount
+    ) &&
+    deliveryAmount !== 0
+) {
+
+    item.logistics +=
+        deliveryAmount;
+
+}
 
     }
 
