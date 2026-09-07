@@ -567,6 +567,8 @@ table {
 
 th {
     padding: 5px 4px;
+    border-right: 1px solid #e3e6eb;
+    border-bottom: 1px solid #e3e6eb;
     font-size: 10px;
     line-height: 1.15;
     white-space: normal;
@@ -575,6 +577,8 @@ th {
 
 td {
     padding: 5px 4px;
+    border-right: 1px solid #e3e6eb;
+    border-bottom: 1px solid #e3e6eb;
     font-size: 11px;
     line-height: 1.18;
     white-space: nowrap;
@@ -2304,9 +2308,19 @@ function render(data) {
                         : historicalColumns;
 
 
+                // Предыдущий календарный день берём из ПОЛНОГО массива.
+                // Поэтому самый старый отображаемый день тоже получает
+                // сравнение с днём, который скрыт за пределами выбранного диапазона.
+                const currentDayIndex =
+                    allDays.findIndex(
+                        item =>
+                            String(item?.date || '') ===
+                            String(day?.date || '')
+                    );
+
                 const previousDay =
-                    index < visibleDays.length - 1
-                        ? visibleDays[index + 1]
+                    currentDayIndex > 0
+                        ? allDays[currentDayIndex - 1]
                         : null;
 
 
