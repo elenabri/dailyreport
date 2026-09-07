@@ -701,6 +701,28 @@ tbody tr:hover td.product-cell {
     background: #fafcff;
 }
 
+
+
+/* =========================================================
+   ПРОДВИЖЕНИЕ
+   ========================================================= */
+
+.promotion-col {
+    background: #f7f3ff;
+}
+
+.promotion-group-title {
+    background: #efe8ff !important;
+    color: #5d43a8 !important;
+    border-left: 2px solid #bda9ef !important;
+    border-right: 2px solid #bda9ef !important;
+    font-weight: 800;
+}
+
+.promotion-col:first-of-type {
+    border-left: 2px solid #bda9ef !important;
+}
+
 /* =========================================================
    ПОДСВЕТКА
    ========================================================= */
@@ -775,6 +797,42 @@ tbody tr:hover td.product-cell {
     cursor: pointer;
 }
 
+
+
+#tableHead tr:nth-child(1) th {
+    top: 0;
+    z-index: 8;
+}
+
+#tableHead tr:nth-child(2) th {
+    top: 28px;
+    z-index: 7;
+}
+
+#tableHead tr:nth-child(3) th {
+    top: 55px;
+    z-index: 6;
+}
+
+.column-chooser summary {
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.column-chooser summary::-webkit-details-marker {
+    display: none;
+}
+
+.column-chooser summary::after {
+    content: '＋';
+    float: right;
+    color: #8b919a;
+}
+
+.column-chooser[open] summary::after {
+    content: '−';
+}
 </style>
 
 </head>
@@ -816,7 +874,7 @@ tbody tr:hover td.product-cell {
             <button
                 id="refreshButton"
             >
-                ↻ Обновить данные
+                Получить данные
             </button>
 
         </div>
@@ -884,24 +942,29 @@ tbody tr:hover td.product-cell {
          ВЫБОР КОЛОНОК
          ===================================================== -->
 
-    <details class="column-chooser">
+    <div class="column-chooser">
 
-        <summary class="column-chooser-title">
+        <div class="column-chooser-title">
             Колонки
-        </summary>
+        </div>
 
         <div class="column-chooser-list">
 
             <label><input type="checkbox" data-column="buyerPrice" checked><span>Цена покупателя</span></label>
             <label><input type="checkbox" data-column="spp" checked><span>СПП</span></label>
             <label><input type="checkbox" data-column="sellerPrice" checked><span>Цена продавца</span></label>
-            <label><input type="checkbox" data-column="views" checked><span>Показы</span></label>
-            <label><input type="checkbox" data-column="clicks" checked><span>Клики</span></label>
-            <label><input type="checkbox" data-column="atbs" checked><span>Корзины</span></label>
-            <label><input type="checkbox" data-column="cpm" checked><span>CPM</span></label>
-            <label><input type="checkbox" data-column="spend"><span>Затраты</span></label>
-            <label><input type="checkbox" data-column="orders" checked><span>Заказы</span></label>
+
+            <label><input type="checkbox" data-column="adViews" checked><span>Показы</span></label>
+            <label><input type="checkbox" data-column="adClicks" checked><span>Клики</span></label>
+            <label><input type="checkbox" data-column="adCarts" checked><span>Корзины</span></label>
+            <label><input type="checkbox" data-column="adCpm" checked><span>CPM</span></label>
+            <label><input type="checkbox" data-column="adSpend"><span>Затраты</span></label>
+            <label><input type="checkbox" data-column="adOrders" checked><span>Заказы</span></label>
+            <label><input type="checkbox" data-column="adOrdersAmount" checked><span>Сумма заказов</span></label>
+
+            <label><input type="checkbox" data-column="allOrders" checked><span>Все заказы</span></label>
             <label><input type="checkbox" data-column="sales" checked><span>Продажи</span></label>
+
             <label><input type="checkbox" data-column="forPay"><span>К перечислению</span></label>
             <label><input type="checkbox" data-column="logistics"><span>Логистика</span></label>
             <label><input type="checkbox" data-column="storage"><span>Хранение</span></label>
@@ -912,7 +975,7 @@ tbody tr:hover td.product-cell {
 
         </div>
 
-    </details>
+    </div>
 
 
     <!-- =====================================================
@@ -1636,61 +1699,85 @@ function render(data) {
         {
             key: 'buyerPrice',
             title: 'Цена<br>покупателя',
-            className: 'day-col-wide'
+            className: 'day-col-wide',
+            group: 'base'
         },
 
         {
             key: 'spp',
             title: 'СПП',
-            className: 'day-col'
+            className: 'day-col',
+            group: 'base'
         },
 
         {
             key: 'sellerPrice',
             title: 'Цена<br>продавца',
-            className: 'day-col-wide'
+            className: 'day-col-wide',
+            group: 'base'
         },
 
         {
-            key: 'views',
-            title: 'Показы',
-            className: 'day-col'
-        },
-
-        {
-            key: 'clicks',
-            title: 'Клики',
-            className: 'day-col'
-        },
-
-        {
-            key: 'atbs',
-            title: 'Корзины',
-            className: 'day-col'
-        },
-
-        {
-            key: 'cpm',
-            title: 'CPM',
-            className: 'day-col'
-        },
-
-        {
-            key: 'spend',
-            title: 'Затраты',
-            className: 'day-col-wide'
-        },
-
-        {
-            key: 'orders',
-            title: 'Заказы',
-            className: 'day-col'
+            key: 'allOrders',
+            title: 'Все<br>заказы',
+            className: 'day-col',
+            group: 'base'
         },
 
         {
             key: 'sales',
             title: 'Продажи',
-            className: 'day-col'
+            className: 'day-col',
+            group: 'base'
+        },
+
+        {
+            key: 'adViews',
+            title: 'Показы',
+            className: 'day-col promotion-col',
+            group: 'promotion'
+        },
+
+        {
+            key: 'adClicks',
+            title: 'Клики',
+            className: 'day-col promotion-col',
+            group: 'promotion'
+        },
+
+        {
+            key: 'adCarts',
+            title: 'Корзины',
+            className: 'day-col promotion-col',
+            group: 'promotion'
+        },
+
+        {
+            key: 'adCpm',
+            title: 'CPM',
+            className: 'day-col promotion-col',
+            group: 'promotion'
+        },
+
+        {
+            key: 'adSpend',
+            title: 'Затраты',
+            className: 'day-col-wide promotion-col',
+            group: 'promotion'
+        },
+
+        {
+            key: 'adOrders',
+            title: 'Заказы',
+            className: 'day-col promotion-col',
+            group: 'promotion'
+        },
+
+        {
+            key: 'adOrdersAmount',
+            title: 'Сумма<br>заказов',
+            className: 'day-col-wide promotion-col',
+            group: 'promotion'
         }
 
     ];
@@ -1701,43 +1788,50 @@ function render(data) {
         {
             key: 'forPay',
             title: 'К<br>перечислению',
-            className: 'day-col-wide'
+            className: 'day-col-wide',
+            group: 'finance'
         },
 
         {
             key: 'logistics',
             title: 'Логистика',
-            className: 'day-col-wide'
+            className: 'day-col-wide',
+            group: 'finance'
         },
 
         {
             key: 'storage',
             title: 'Хранение',
-            className: 'day-col-wide'
+            className: 'day-col-wide',
+            group: 'finance'
         },
 
         {
             key: 'tax',
             title: 'Налог',
-            className: 'day-col-wide'
+            className: 'day-col-wide',
+            group: 'finance'
         },
 
         {
             key: 'profit',
             title: 'Прибыль',
-            className: 'day-col-wide'
+            className: 'day-col-wide',
+            group: 'finance'
         },
 
         {
             key: 'profitability',
             title: 'Рентабельность',
-            className: 'day-col-wide'
+            className: 'day-col-wide',
+            group: 'finance'
         },
 
         {
             key: 'margin',
             title: 'Маржа',
-            className: 'day-col-wide'
+            className: 'day-col-wide',
+            group: 'finance'
         }
 
     ];
@@ -1881,6 +1975,79 @@ function render(data) {
     }
 
 
+    function renderGroupHeader(
+        columns
+    ) {
+
+        if (!columns.length) {
+            return '';
+        }
+
+        const groups = [];
+
+        let currentGroup = null;
+        let count = 0;
+
+        for (const column of columns) {
+
+            if (column.group !== currentGroup) {
+
+                if (currentGroup !== null) {
+                    groups.push({
+                        key: currentGroup,
+                        count
+                    });
+                }
+
+                currentGroup = column.group;
+                count = 1;
+
+            } else {
+                count++;
+            }
+        }
+
+        if (currentGroup !== null) {
+            groups.push({
+                key: currentGroup,
+                count
+            });
+        }
+
+        const titles = {
+            base: 'Основные',
+            promotion: 'Продвижение',
+            finance: 'Финансы'
+        };
+
+        return groups
+            .map(
+                (group, index) => {
+
+                    const separator =
+                        index === 0
+                            ? 'day-separator '
+                            : '';
+
+                    const promotion =
+                        group.key === 'promotion'
+                            ? 'promotion-group-title'
+                            : '';
+
+                    return `
+                        <th
+                            colspan="${group.count}"
+                            class="${separator}${promotion}"
+                        >
+                            ${titles[group.key] || group.key}
+                        </th>
+                    `;
+                }
+            )
+            .join('');
+    }
+
+
     // ========================================================
     // HEADER
     // ========================================================
@@ -1974,6 +2141,7 @@ function render(data) {
     `;
 
 
+    let headerGroups = '<tr>';
     let headerBottom = '<tr>';
 
 
@@ -1997,6 +2165,11 @@ function render(data) {
                 columns.length > 0
             ) {
 
+                headerGroups +=
+                    renderGroupHeader(
+                        columns
+                    );
+
                 headerBottom +=
                     renderColumnsHeader(
                         columns
@@ -2008,6 +2181,7 @@ function render(data) {
     );
 
 
+    headerGroups += '</tr>';
     headerBottom += '</tr>';
 
 
@@ -2015,6 +2189,7 @@ function render(data) {
         .getElementById('tableHead')
         .innerHTML =
             headerTop +
+            headerGroups +
             headerBottom;
 
 
@@ -2080,7 +2255,7 @@ function render(data) {
                 break;
 
 
-            case 'views':
+            case 'adViews':
 
                 value =
                     formatNumber(
@@ -2091,7 +2266,7 @@ function render(data) {
                 break;
 
 
-            case 'clicks':
+            case 'adClicks':
 
                 value =
                     formatNumber(
@@ -2102,7 +2277,7 @@ function render(data) {
                 break;
 
 
-            case 'atbs':
+            case 'adCarts':
 
                 value =
                     formatNumber(
@@ -2113,7 +2288,7 @@ function render(data) {
                 break;
 
 
-            case 'cpm':
+            case 'adCpm':
 
                 value =
                     formatNumber(
@@ -2125,7 +2300,7 @@ function render(data) {
                 break;
 
 
-            case 'spend':
+            case 'adSpend':
 
                 value =
                     formatAdMoney(
@@ -2136,13 +2311,48 @@ function render(data) {
                 break;
 
 
-            case 'orders':
+            case 'allOrders':
 
                 value =
                     formatNumber(
-                        day.orders ||
+                        day.allOrders ??
+                        day.orders ??
                         0
                     );
+
+                extraClass =
+                    changeClasses.allOrders ||
+                    '';
+
+                break;
+
+
+            case 'adOrders':
+
+                value =
+                    formatNumber(
+                        day.advertising?.orders ||
+                        0
+                    );
+
+                extraClass =
+                    changeClasses.adOrders ||
+                    '';
+
+                break;
+
+
+            case 'adOrdersAmount':
+
+                value =
+                    formatAdMoney(
+                        day.advertising?.ordersAmount ||
+                        0
+                    );
+
+                extraClass =
+                    changeClasses.adOrdersAmount ||
+                    '';
 
                 break;
 
@@ -2394,6 +2604,33 @@ function render(data) {
                                 day.sellerPrice,
                                 previousDay.sellerPrice,
                                 'price'
+                            )
+                            : '',
+
+                    allOrders:
+                        previousDay
+                            ? getChangeClass(
+                                day.allOrders ?? day.orders,
+                                previousDay.allOrders ?? previousDay.orders,
+                                'sales'
+                            )
+                            : '',
+
+                    adOrders:
+                        previousDay
+                            ? getChangeClass(
+                                day.advertising?.orders,
+                                previousDay.advertising?.orders,
+                                'sales'
+                            )
+                            : '',
+
+                    adOrdersAmount:
+                        previousDay
+                            ? getChangeClass(
+                                day.advertising?.ordersAmount,
+                                previousDay.advertising?.ordersAmount,
+                                'sales'
                             )
                             : '',
 
@@ -2901,7 +3138,7 @@ document
 // ============================================================
 //
 // Данные начинают загружаться ТОЛЬКО после нажатия
-// кнопки «↻ Обновить данные».
+// кнопки «Получить данные».
 // ============================================================
 
 </script>
