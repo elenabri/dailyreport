@@ -279,7 +279,7 @@ button {
 .table-container {
     width: 100%;
     height: calc(100vh - 103px);
-    overflow: hidden;
+    overflow: auto;
     background: #fff;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
@@ -1873,8 +1873,7 @@ function render(data) {
         ) => {
 
             const isToday =
-                index ===
-                visibleDateValues.length - 1;
+                index === 0;
 
 
             const columns =
@@ -1952,8 +1951,7 @@ function render(data) {
         ) => {
 
             const isToday =
-                index ===
-                visibleDateValues.length - 1;
+                index === 0;
 
 
             const columns =
