@@ -1869,8 +1869,13 @@ function render(data) {
         );
 
 
+    // Сегодня колонка «Продажи» полностью скрыта.
+    // В остальные дни «Продажи» остаются.
     const todayColumns =
-        selectedOperationalColumns;
+        selectedOperationalColumns.filter(
+            column =>
+                column.key !== 'sales'
+        );
 
 
     const historicalColumns =
@@ -2263,7 +2268,8 @@ function render(data) {
         financial,
         changeClasses,
         isFirst,
-        isLast
+        isLast,
+        isToday
     ) {
 
         let value = '';
@@ -2420,14 +2426,22 @@ function render(data) {
 
             case 'sales':
 
+                // Сегодня продажи НЕ показываем.
+                // За остальные дни оставляем как есть.
                 value =
-                    formatNumber(
-                        day.sales
-                    );
+                    isToday
+                        ? '<span class="empty">—</span>'
+                        : formatNumber(
+                            day.sales
+                        );
 
                 extraClass =
-                    changeClasses.sales ||
-                    '';
+                    isToday
+                        ? ''
+                        : (
+                            changeClasses.sales ||
+                            ''
+                        );
 
                 break;
 
@@ -2673,7 +2687,7 @@ function render(data) {
                             : '',
 
                     allOrders:
-                        previousDay
+                        !isToday && previousDay
                             ? getChangeClass(
                                 day.allOrders ?? day.orders,
                                 previousDay.allOrders ?? previousDay.orders,
@@ -2682,7 +2696,7 @@ function render(data) {
                             : '',
 
                     adOrders:
-                        previousDay
+                        !isToday && previousDay
                             ? getChangeClass(
                                 day.advertising?.orders,
                                 previousDay.advertising?.orders,
@@ -2691,7 +2705,7 @@ function render(data) {
                             : '',
 
                     adOrdersAmount:
-                        previousDay
+                        !isToday && previousDay
                             ? getChangeClass(
                                 day.advertising?.ordersAmount,
                                 previousDay.advertising?.ordersAmount,
@@ -2741,7 +2755,8 @@ function render(data) {
                                 day.financial || {},
                                 changeClasses,
                                 columnIndex === 0,
-                                columnIndex === columns.length - 1
+                                columnIndex === columns.length - 1,
+                                isToday
                             );
                     }
                 );
