@@ -583,18 +583,23 @@ td {
 
 th.product-header,
 .product-cell {
-    width: 250px;
-    min-width: 250px;
-    max-width: 250px;
+    width: 320px;
+    min-width: 320px;
+    max-width: 320px;
 }
 
 .product-cell {
     text-align: left;
+    white-space: normal;
+    overflow: hidden;
 }
 
 .product-name {
-    font-size: 11px;
-    line-height: 1.2;
+    font-size: 12px;
+    line-height: 1.25;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .product-article {
@@ -714,6 +719,36 @@ tbody tr:hover td.product-cell {
 }
 
 
+
+/* =========================================================
+   ВЫБОР КОЛИЧЕСТВА ДНЕЙ
+   ========================================================= */
+
+.days-filter {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+}
+
+.days-filter label {
+    color: #68707c;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+#daysCount {
+    height: 31px;
+    min-width: 64px;
+    padding: 0 9px;
+    border: 1px solid #d9dde3;
+    border-radius: 7px;
+    background: #fff;
+    color: #20242b;
+    font-size: 12px;
+    cursor: pointer;
+}
+
 </style>
 
 </head>
@@ -798,6 +833,24 @@ tbody tr:hover td.product-cell {
 
         </label>
 
+        <div class="days-filter">
+
+            <label for="daysCount">
+                Показывать дней
+            </label>
+
+            <select id="daysCount">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+            </select>
+
+        </div>
+
     </div>
 
 
@@ -821,7 +874,7 @@ tbody tr:hover td.product-cell {
             <label><input type="checkbox" data-column="atbs" checked><span>Корзины</span></label>
             <label><input type="checkbox" data-column="cpm" checked><span>CPM</span></label>
             <label><input type="checkbox" data-column="spend" checked><span>Затраты</span></label>
-            <label><input type="checkbox" data-column="sales"><span>Продажи</span></label>
+            <label><input type="checkbox" data-column="sales" checked><span>Продажи</span></label>
             <label><input type="checkbox" data-column="forPay"><span>К перечислению</span></label>
             <label><input type="checkbox" data-column="logistics"><span>Логистика</span></label>
             <label><input type="checkbox" data-column="storage"><span>Хранение</span></label>
@@ -1214,6 +1267,26 @@ function getChangeClass(
     }
 
 
+    // ========================================================
+    // РЕНТАБЕЛЬНОСТЬ / МАРЖА
+    //
+    // Рост  -> зелёный
+    // Падение -> красный
+    // ========================================================
+
+    if (
+        type === 'profitability' ||
+        type === 'margin'
+    ) {
+
+        return currentNumber >
+            previousNumber
+            ? 'up'
+            : 'down';
+
+    }
+
+
     return '';
 
 }
@@ -1230,7 +1303,7 @@ function render(data) {
     // ========================================================
 
     const allProducts =
-        Array.isArray(data.products)
+        Array.isArray(data?.products)
             ? data.products
             : [];
 
@@ -1239,54 +1312,63 @@ function render(data) {
     // ФИЛЬТР ТОВАРОВ
     // ========================================================
 
-    const filterInput =
-        document.getElementById(
-            'productFilter'
-        );
-
-
-    const hideZeroSalesCheckbox =
-        document.getElementById(
-            'hideZeroSales'
-        );
-
-
     const filterText =
         String(
-            filterInput?.value || ''
+            document.getElementById(
+                'productFilter'
+            )?.value || ''
         )
             .trim()
             .toLowerCase();
 
 
     const hideZeroSales =
-        hideZeroSalesCheckbox
-            ? hideZeroSalesCheckbox.checked
-            : true;
+        document.getElementById(
+            'hideZeroSales'
+        )?.checked !== false;
 
 
     // ========================================================
-    // ФИЛЬТРАЦИЯ
+    // КОЛИЧЕСТВО ДНЕЙ
+    // 1–7, по умолчанию 3
     // ========================================================
 
-    const products =
+    let daysCount = Number(
+        document.getElementById(
+            'daysCount'
+        )?.value || 3
+    );
+
+
+    if (
+        !Number.isFinite(daysCount) ||
+        daysCount < 1
+    ) {
+        daysCount = 3;
+    }
+
+    daysCount = Math.min(
+        7,
+        Math.max(1, daysCount)
+    );
+
+
+    // ========================================================
+    // СНАЧАЛА ФИЛЬТРУЕМ ТОВАРЫ
+    // ========================================================
+
+    let products =
         allProducts.filter(
             product => {
 
-                const dayBefore =
-                    product.days?.[0] || {};
-
-                const yesterday =
-                    product.days?.[1] || {};
-
-                const today =
-                    product.days?.[2] || {};
+                const days =
+                    Array.isArray(product.days)
+                        ? product.days
+                        : [];
 
 
-                const sales3Days =
-                    Number(dayBefore.sales || 0) +
-                    Number(yesterday.sales || 0) +
-                    Number(today.sales || 0);
+                const visibleDays =
+                    days.slice(-daysCount);
 
 
                 // --------------------------------------------
@@ -1294,37 +1376,61 @@ function render(data) {
                 // --------------------------------------------
 
                 if (
-                    hideZeroSales &&
-                    sales3Days <= 0
+                    hideZeroSales
                 ) {
 
-                    return false;
+                    const sales =
+                        visibleDays.reduce(
+                            (
+                                sum,
+                                day
+                            ) =>
+                                sum +
+                                Number(
+                                    day?.sales ||
+                                    0
+                                ),
+                            0
+                        );
+
+
+                    if (
+                        sales <= 0
+                    ) {
+
+                        return false;
+                    }
                 }
 
 
                 // --------------------------------------------
-                // ПОИСК ПО НАЗВАНИЮ / КОДУ / NM ID
+                // ПОИСК
                 // --------------------------------------------
 
-                if (filterText) {
+                if (
+                    filterText
+                ) {
 
                     const name =
                         String(
-                            product.name || ''
+                            product.name ||
+                            ''
                         )
                             .toLowerCase();
 
 
                     const article =
                         String(
-                            product.article || ''
+                            product.article ||
+                            ''
                         )
                             .toLowerCase();
 
 
                     const nmId =
                         String(
-                            product.nmId || ''
+                            product.nmId ||
+                            ''
                         )
                             .toLowerCase();
 
@@ -1346,22 +1452,54 @@ function render(data) {
 
 
     // ========================================================
-    // СОРТИРОВКА ПО ЗАКАЗАМ ЗА 3 ДНЯ — ВОЗРАСТАНИЕ
+    // СОРТИРОВКА ПО ЗАКАЗАМ ЗА ВЫБРАННОЕ ЧИСЛО ДНЕЙ
+    // ПО ВОЗРАСТАНИЮ
     // ========================================================
 
     products.sort(
-        (a, b) => {
+        (
+            a,
+            b
+        ) => {
 
             const aSales =
-                Number(a.days?.[0]?.sales || 0) +
-                Number(a.days?.[1]?.sales || 0) +
-                Number(a.days?.[2]?.sales || 0);
+                (Array.isArray(a.days)
+                    ? a.days
+                    : []
+                )
+                    .slice(-daysCount)
+                    .reduce(
+                        (
+                            sum,
+                            day
+                        ) =>
+                            sum +
+                            Number(
+                                day?.sales ||
+                                0
+                            ),
+                        0
+                    );
 
 
             const bSales =
-                Number(b.days?.[0]?.sales || 0) +
-                Number(b.days?.[1]?.sales || 0) +
-                Number(b.days?.[2]?.sales || 0);
+                (Array.isArray(b.days)
+                    ? b.days
+                    : []
+                )
+                    .slice(-daysCount)
+                    .reduce(
+                        (
+                            sum,
+                            day
+                        ) =>
+                            sum +
+                            Number(
+                                day?.sales ||
+                                0
+                            ),
+                        0
+                    );
 
 
             if (
@@ -1379,7 +1517,69 @@ function render(data) {
 
 
     // ========================================================
-    // СОХРАНЯЕМ ВЫБОР КОЛОНОК
+    // ПЕРИОД
+    // ========================================================
+
+    document
+        .getElementById('period')
+        .textContent =
+            `Заказы: ${
+                formatDate(
+                    data?.period?.from
+                )
+            } — ${
+                formatDate(
+                    data?.period?.to
+                )
+            } · товаров: ${
+                products.length
+            }`;
+
+
+    // ========================================================
+    // НЕТ ТОВАРОВ
+    // ========================================================
+
+    if (
+        !products.length
+    ) {
+
+        document
+            .getElementById('tableHead')
+            .innerHTML = '';
+
+
+        document
+            .getElementById('tableBody')
+            .innerHTML = `
+
+                <tr>
+
+                    <td
+                        colspan="50"
+                        class="error"
+                    >
+
+                        ${
+                            filterText
+                                ? 'Товары не найдены.'
+                                : hideZeroSales
+                                    ? `За выбранные ${daysCount} ${daysCount === 1 ? 'день' : daysCount < 5 ? 'дня' : 'дней'} продаж нет.`
+                                    : 'Товары отсутствуют.'
+                        }
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        return;
+    }
+
+
+    // ========================================================
+    // СОСТОЯНИЕ КОЛОНОК
     // ========================================================
 
     const columnState = {};
@@ -1395,6 +1595,7 @@ function render(data) {
                 columnState[
                     checkbox.dataset.column
                 ] = checkbox.checked;
+
             }
         );
 
@@ -1458,6 +1659,7 @@ function render(data) {
             title: 'Продажи',
             className: 'day-col'
         }
+
     ];
 
 
@@ -1504,6 +1706,7 @@ function render(data) {
             title: 'Маржа',
             className: 'day-col-wide'
         }
+
     ];
 
 
@@ -1521,20 +1724,8 @@ function render(data) {
         );
 
 
-    // ========================================================
-    // ФИНАНСОВЫЕ КОЛОНКИ ЗА СЕГОДНЯ НЕ ПОКАЗЫВАЕМ
-    // ========================================================
-
     const todayColumns =
-        selectedOperationalColumns.length
-            ? selectedOperationalColumns
-            : [
-                {
-                    key: '__emptyToday',
-                    title: '—',
-                    className: 'day-col'
-                }
-            ];
+        selectedOperationalColumns;
 
 
     const historicalColumns =
@@ -1543,121 +1734,123 @@ function render(data) {
         );
 
 
-    const yesterdayColumns =
-        historicalColumns.length
-            ? historicalColumns
-            : [
-                {
-                    key: '__emptyYesterday',
-                    title: '—',
-                    className: 'day-col'
-                }
-            ];
-
-
-    const dayBeforeColumns =
-        historicalColumns.length
-            ? historicalColumns
-            : [
-                {
-                    key: '__emptyDayBefore',
-                    title: '—',
-                    className: 'day-col'
-                }
-            ];
-
-
-    // ========================================================
-    // ПЕРИОД
-    // ========================================================
-
-    document
-        .getElementById('period')
-        .textContent =
-            `Заказы: ${
-                formatDate(data.period.from)
-            } — ${
-                formatDate(data.period.to)
-            } · товаров: ${
-                products.length
-            }`;
-
-
-    // ========================================================
-    // НЕТ ТОВАРОВ
-    // ========================================================
-
-    if (!products.length) {
-
-        document
-            .getElementById('tableHead')
-            .innerHTML = '';
-
-
-        document
-            .getElementById('tableBody')
-            .innerHTML = `
-
-                <tr>
-
-                    <td
-                        colspan="20"
-                        class="error"
-                    >
-
-                        ${
-                            filterText
-                                ? 'Товары не найдены.'
-                                : hideZeroSales
-                                    ? 'За последние 3 дня продаж нет.'
-                                    : 'Товары отсутствуют.'
-                        }
-
-                    </td>
-
-                </tr>
-
-            `;
-
-        return;
-    }
-
-
     // ========================================================
     // ДНИ
     // ========================================================
 
-    const today =
-        products[0].days[2];
+    const sampleDays =
+        Array.isArray(
+            products[0]?.days
+        )
+            ? products[0].days
+            : [];
 
-    const yesterday =
-        products[0].days[1];
 
-    const dayBefore =
-        products[0].days[0];
+    const visibleDateValues =
+        sampleDays.slice(-daysCount);
 
 
     // ========================================================
-    // HEADER — ПЕРВАЯ СТРОКА
+    // НАЗВАНИЯ ДНЕЙ
     // ========================================================
 
-    const renderDayTitle =
-        (title, day, columns) => `
+    function getDayTitle(
+        visibleIndex,
+        total
+    ) {
+
+        if (
+            visibleIndex === total - 1
+        ) {
+            return 'Сегодня';
+        }
+
+
+        if (
+            visibleIndex === total - 2
+        ) {
+            return 'Вчера';
+        }
+
+
+        if (
+            visibleIndex === total - 3
+        ) {
+            return 'Позавчера';
+        }
+
+
+        return 'День';
+    }
+
+
+    function renderDayTitle(
+        day,
+        index,
+        total,
+        columns
+    ) {
+
+        return `
 
             <th
                 colspan="${columns.length}"
                 class="day-title day-separator"
             >
 
-                ${title}
+                ${getDayTitle(
+                    index,
+                    total
+                )}
 
                 <span class="day-date">
-                    ${formatDate(day.date)}
+
+                    ${formatDate(
+                        day.date
+                    )}
+
                 </span>
 
             </th>
-        `;
 
+        `;
+    }
+
+
+    function renderColumnsHeader(
+        columns
+    ) {
+
+        return columns
+            .map(
+                (
+                    column,
+                    index
+                ) => `
+
+                    <th
+                        class="${
+                            index === 0
+                                ? 'day-separator '
+                                : ''
+                        }${
+                            column.className || ''
+                        }"
+                    >
+
+                        ${column.title}
+
+                    </th>
+
+                `
+            )
+            .join('');
+    }
+
+
+    // ========================================================
+    // HEADER
+    // ========================================================
 
     let headerTop = `
 
@@ -1670,23 +1863,45 @@ function render(data) {
                 Товар
             </th>
 
-            ${renderDayTitle(
-                'Сегодня',
-                today,
-                todayColumns
-            )}
+    `;
 
-            ${renderDayTitle(
-                'Вчера',
-                yesterday,
-                yesterdayColumns
-            )}
 
-            ${renderDayTitle(
-                'Позавчера',
-                dayBefore,
-                dayBeforeColumns
-            )}
+    visibleDateValues.forEach(
+        (
+            day,
+            index
+        ) => {
+
+            const isToday =
+                index ===
+                visibleDateValues.length - 1;
+
+
+            const columns =
+                isToday
+                    ? todayColumns
+                    : historicalColumns;
+
+
+            if (
+                columns.length > 0
+            ) {
+
+                headerTop +=
+                    renderDayTitle(
+                        day,
+                        index,
+                        visibleDateValues.length,
+                        columns
+                    );
+
+            }
+
+        }
+    );
+
+
+    headerTop += `
 
             <th
                 rowspan="2"
@@ -1727,50 +1942,42 @@ function render(data) {
     `;
 
 
-    // ========================================================
-    // HEADER — ВТОРАЯ СТРОКА
-    // ========================================================
-
-    const renderColumnsHeader =
-        columns => {
-
-            return columns
-                .map(
-                    (column, index) => `
-
-                        <th
-                            class="${
-                                index === 0
-                                    ? 'day-separator '
-                                    : ''
-                            }${column.className || ''}"
-                        >
-                            ${column.title}
-                        </th>
-                    `
-                )
-                .join('');
-        };
+    let headerBottom = '<tr>';
 
 
-    const headerBottom = `
+    visibleDateValues.forEach(
+        (
+            day,
+            index
+        ) => {
 
-        <tr>
+            const isToday =
+                index ===
+                visibleDateValues.length - 1;
 
-            ${renderColumnsHeader(
-                todayColumns
-            )}
 
-            ${renderColumnsHeader(
-                yesterdayColumns
-            )}
+            const columns =
+                isToday
+                    ? todayColumns
+                    : historicalColumns;
 
-            ${renderColumnsHeader(
-                dayBeforeColumns
-            )}
 
-        </tr>
-    `;
+            if (
+                columns.length > 0
+            ) {
+
+                headerBottom +=
+                    renderColumnsHeader(
+                        columns
+                    );
+
+            }
+
+        }
+    );
+
+
+    headerBottom += '</tr>';
 
 
     document
@@ -1781,7 +1988,7 @@ function render(data) {
 
 
     // ========================================================
-    // ЗНАЧЕНИЕ КОЛОНКИ
+    // РЕНДЕР ЗНАЧЕНИЯ КОЛОНКИ
     // ========================================================
 
     function renderColumnValue(
@@ -1796,7 +2003,9 @@ function render(data) {
         let extraClass = '';
 
 
-        switch (column.key) {
+        switch (
+            column.key
+        ) {
 
             case 'buyerPrice':
 
@@ -1967,6 +2176,10 @@ function render(data) {
                         financial?.profitability
                     );
 
+                extraClass =
+                    changeClasses.profitability ||
+                    '';
+
                 break;
 
 
@@ -1976,6 +2189,10 @@ function render(data) {
                     formatPercent(
                         financial?.margin
                     );
+
+                extraClass =
+                    changeClasses.margin ||
+                    '';
 
                 break;
 
@@ -2004,6 +2221,7 @@ function render(data) {
                 ${value}
 
             </td>
+
         `;
     }
 
@@ -2019,288 +2237,230 @@ function render(data) {
         const product of products
     ) {
 
-        const today =
-            product.days[2] || {};
-
-        const yesterday =
-            product.days[1] || {};
-
-        const dayBefore =
-            product.days[0] || {};
+        const allDays =
+            Array.isArray(
+                product.days
+            )
+                ? product.days
+                : [];
 
 
-        // ====================================================
-        // ИЗМЕНЕНИЯ
-        // ====================================================
-
-        const buyerTodayClass =
-            getChangeClass(
-                today.buyerPrice,
-                yesterday.buyerPrice,
-                'price'
-            );
-
-
-        const sppTodayClass =
-            getChangeClass(
-                today.spp,
-                yesterday.spp,
-                'spp'
-            );
-
-
-        const sellerTodayClass =
-            getChangeClass(
-                today.sellerPrice,
-                yesterday.sellerPrice,
-                'price'
-            );
-
-
-        const buyerYesterdayClass =
-            getChangeClass(
-                yesterday.buyerPrice,
-                dayBefore.buyerPrice,
-                'price'
-            );
-
-
-        const sppYesterdayClass =
-            getChangeClass(
-                yesterday.spp,
-                dayBefore.spp,
-                'spp'
-            );
-
-
-        const sellerYesterdayClass =
-            getChangeClass(
-                yesterday.sellerPrice,
-                dayBefore.sellerPrice,
-                'price'
-            );
-
-
-        const salesTodayClass =
-            getChangeClass(
-                today.sales,
-                yesterday.sales,
-                'sales'
-            );
-
-
-        const salesYesterdayClass =
-            getChangeClass(
-                yesterday.sales,
-                dayBefore.sales,
-                'sales'
-            );
-
-
-        const todayFinancial =
-            today.financial || {};
-
-
-        const yesterdayFinancial =
-            yesterday.financial || {};
-
-
-        const dayBeforeFinancial =
-            dayBefore.financial || {};
-
-
-        const todayClasses = {
-
-            buyer:
-                buyerTodayClass,
-
-            spp:
-                sppTodayClass,
-
-            seller:
-                sellerTodayClass,
-
-            sales:
-                salesTodayClass
-        };
-
-
-        const yesterdayClasses = {
-
-            buyer:
-                buyerYesterdayClass,
-
-            spp:
-                sppYesterdayClass,
-
-            seller:
-                sellerYesterdayClass,
-
-            sales:
-                salesYesterdayClass
-        };
-
-
-        const dayBeforeClasses = {
-
-            buyer: '',
-
-            spp: '',
-
-            seller: '',
-
-            sales: ''
-        };
+        const visibleDays =
+            allDays.slice(-daysCount);
 
 
         html += `
 
-<tr>
+            <tr>
 
-    <!-- ====================================================
-         ТОВАР
-         ==================================================== -->
+                <td
+                    class="product-cell"
+                    title="${escapeHtml(
+                        product.name || ''
+                    )}"
+                >
 
-    <td
-        class="product-cell"
-        title="${escapeHtml(
-            product.name || ''
-        )}"
-    >
+                    <div class="product-name">
 
-        <div class="product-name">
+                        ${escapeHtml(
+                            product.name ||
+                            'Без названия'
+                        )}
 
-            ${escapeHtml(
-                product.name ||
-                'Без названия'
-            )}
+                    </div>
 
-        </div>
+                    <div class="product-article">
 
+                        ${escapeHtml(
+                            product.article ||
+                            ''
+                        )}
 
-        <div class="product-article">
+                        · nmId
 
-            ${escapeHtml(
-                product.article ||
-                ''
-            )}
+                        ${escapeHtml(
+                            product.nmId ||
+                            ''
+                        )}
 
-            · nmId
+                    </div>
 
-            ${escapeHtml(
-                product.nmId ||
-                ''
-            )}
+                </td>
 
-        </div>
-
-    </td>
+        `;
 
 
-    <!-- ====================================================
-         СЕГОДНЯ
-         ==================================================== -->
+        visibleDays.forEach(
+            (
+                day,
+                index
+            ) => {
 
-    ${todayColumns
-        .map(
-            (column, index) =>
-                renderColumnValue(
-                    column,
-                    today,
-                    todayFinancial,
-                    todayClasses,
-                    index === 0
-                )
-        )
-        .join('')}
+                const isToday =
+                    index ===
+                    visibleDays.length - 1;
 
 
-    <!-- ====================================================
-         ВЧЕРА
-         ==================================================== -->
-
-    ${yesterdayColumns
-        .map(
-            (column, index) =>
-                renderColumnValue(
-                    column,
-                    yesterday,
-                    yesterdayFinancial,
-                    yesterdayClasses,
-                    index === 0
-                )
-        )
-        .join('')}
+                const columns =
+                    isToday
+                        ? todayColumns
+                        : historicalColumns;
 
 
-    <!-- ====================================================
-         ПОЗАВЧЕРА
-         ==================================================== -->
-
-    ${dayBeforeColumns
-        .map(
-            (column, index) =>
-                renderColumnValue(
-                    column,
-                    dayBefore,
-                    dayBeforeFinancial,
-                    dayBeforeClasses,
-                    index === 0
-                )
-        )
-        .join('')}
+                const previousDay =
+                    index > 0
+                        ? visibleDays[index - 1]
+                        : null;
 
 
-    <!-- ====================================================
-         ИТОГИ
-         ==================================================== -->
+                // --------------------------------------------
+                // ИЗМЕНЕНИЯ
+                // --------------------------------------------
 
-    <td class="day-separator result-col">
-        ${formatNumber(
-            product.orders30
-        )}
-    </td>
+                const changeClasses = {
+
+                    buyer:
+                        previousDay
+                            ? getChangeClass(
+                                day.buyerPrice,
+                                previousDay.buyerPrice,
+                                'price'
+                            )
+                            : '',
+
+                    spp:
+                        previousDay
+                            ? getChangeClass(
+                                day.spp,
+                                previousDay.spp,
+                                'spp'
+                            )
+                            : '',
+
+                    seller:
+                        previousDay
+                            ? getChangeClass(
+                                day.sellerPrice,
+                                previousDay.sellerPrice,
+                                'price'
+                            )
+                            : '',
+
+                    sales:
+                        previousDay
+                            ? getChangeClass(
+                                day.sales,
+                                previousDay.sales,
+                                'sales'
+                            )
+                            : '',
+
+                    profitability:
+                        previousDay
+                            ? getChangeClass(
+                                day.financial?.profitability,
+                                previousDay.financial?.profitability,
+                                'profitability'
+                            )
+                            : '',
+
+                    margin:
+                        previousDay
+                            ? getChangeClass(
+                                day.financial?.margin,
+                                previousDay.financial?.margin,
+                                'margin'
+                            )
+                            : ''
+                };
 
 
-    <td class="stock result-col">
-        ${formatNumber(
-            product.stockToday
-        )}
-    </td>
+                columns.forEach(
+                    (
+                        column,
+                        columnIndex
+                    ) => {
+
+                        html +=
+                            renderColumnValue(
+                                column,
+                                day,
+                                day.financial || {},
+                                changeClasses,
+                                columnIndex === 0
+                            );
+                    }
+                );
+
+            }
+        );
 
 
-    <td class="days-left result-col">
+        // ====================================================
+        // ИТОГОВЫЕ КОЛОНКИ
+        // ====================================================
 
-        ${
-            product.daysLeft === null
-                ? '<span class="empty">∞</span>'
-                : formatNumber(
-                    product.daysLeft,
-                    1
-                ) + ' дн.'
-        }
+        html += `
 
-    </td>
+                <td
+                    class="day-separator result-col"
+                >
 
+                    ${formatNumber(
+                        product.orders30
+                    )}
 
-    <td class="position result-col">
-        ${formatNumber(
-            product.positionToday,
-            1
-        )}
-    </td>
+                </td>
 
+                <td
+                    class="stock result-col"
+                >
 
-    <td class="cost result-col">
-        ${formatMoney(
-            product.cost
-        )}
-    </td>
+                    ${formatNumber(
+                        product.stockToday
+                    )}
 
-</tr>
+                </td>
 
-`;
+                <td
+                    class="days-left result-col"
+                >
 
+                    ${
+                        product.daysLeft === null
+                            ? '<span class="empty">∞</span>'
+                            : formatNumber(
+                                product.daysLeft,
+                                1
+                            ) + ' дн.'
+                    }
+
+                </td>
+
+                <td
+                    class="position result-col"
+                >
+
+                    ${formatNumber(
+                        product.positionToday,
+                        1
+                    )}
+
+                </td>
+
+                <td
+                    class="cost result-col"
+                >
+
+                    ${formatMoney(
+                        product.cost
+                    )}
+
+                </td>
+
+            </tr>
+
+        `;
     }
 
 
@@ -2655,6 +2815,31 @@ document
                     }
                 }
             );
+        }
+    );
+
+
+// ============================================================
+// ВЫБОР КОЛИЧЕСТВА ДНЕЙ
+// ============================================================
+
+document
+    .getElementById(
+        'daysCount'
+    )
+    .addEventListener(
+        'change',
+        () => {
+
+            if (
+                window.dashboardData
+            ) {
+
+                render(
+                    window.dashboardData
+                );
+
+            }
         }
     );
 
