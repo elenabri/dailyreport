@@ -1227,14 +1227,14 @@ tbody tr:hover td.product-cell {
             <label><input type="checkbox" data-column="adClicks" checked><span>Клики</span></label>
             <label><input type="checkbox" data-column="adCarts" checked><span>Корзины</span></label>
             <label><input type="checkbox" data-column="adCpm" checked><span>CPM</span></label>
-            <label><input type="checkbox" data-column="adSpend" checked><span>Затраты</span></label>
+            <label><input type="checkbox" data-column="adSpend"><span>Затраты</span></label>
             <label><input type="checkbox" data-column="adOrders" checked><span>Заказы</span></label>
             <label><input type="checkbox" data-column="adOrdersAmount" checked><span>Сумма заказов</span></label>
 
             <label><input type="checkbox" data-column="allOrders" checked><span>Все заказы</span></label>
             <label><input type="checkbox" data-column="sales" checked><span>Продажи</span></label>
 
-            <label><input type="checkbox" data-column="retailSales"><span>Оборот</span></label>
+            <label><input type="checkbox" data-column="retailSales" checked><span>Оборот</span></label>
 
             <label><input type="checkbox" data-column="forPay"><span>К перечислению</span></label>
             <label><input type="checkbox" data-column="logistics"><span>Логистика</span></label>
@@ -3204,9 +3204,11 @@ function resetLoadingOperations() {
 }
 
 
-function setActiveOperation(
-    operationName
-) {
+function updateLoadingOperations(progress) {
+
+    if (!progress || !progress.steps) {
+        return;
+    }
 
     document
         .querySelectorAll(
@@ -3215,17 +3217,68 @@ function setActiveOperation(
         .forEach(
             operation => {
 
-                if (
-                    operation.dataset.operation ===
-                    operationName
-                ) {
+                const key =
+                    operation.dataset.operation;
 
-                    operation.classList.add(
-                        'active'
-                    );
-                }
+                const done =
+                    progress.steps[key] === true;
+
+                operation.classList.toggle(
+                    'done',
+                    done
+                );
+
+                operation.classList.toggle(
+                    'active',
+                    !done &&
+                    progress.running === true &&
+                    key === progress.current
+                );
             }
         );
+}
+
+
+async function pollDashboardProgress() {
+
+    while (loadingData) {
+
+        try {
+
+            const response =
+                await fetch(
+                    '/api/dashboard-progress?ts=' +
+                    Date.now(),
+                    {
+                        method: 'GET',
+                        cache: 'no-store'
+                    }
+                );
+
+            if (response.ok) {
+
+                const progress =
+                    await response.json();
+
+                updateLoadingOperations(
+                    progress
+                );
+            }
+
+        } catch (error) {
+
+            // Не прерываем основную загрузку,
+            // если временно не удалось получить статус.
+        }
+
+        await new Promise(
+            resolve =>
+                setTimeout(
+                    resolve,
+                    700
+                )
+        );
+    }
 }
 
 
@@ -3255,6 +3308,10 @@ function closeLoadingOverlay() {
             'loadingOverlay'
         );
 
+    if (!loadingOverlay) {
+        return;
+    }
+
     loadingOverlay.classList.remove(
         'visible'
     );
@@ -3266,13 +3323,8 @@ function closeLoadingOverlay() {
 }
 
 
-
 // ============================================================
 // ЗАГРУЗКА ДАННЫХ
-//
-// ВАЖНО:
-// Автоматически НЕ запускается.
-// Только после нажатия кнопки.
 // ============================================================
 
 async function loadData() {
@@ -3287,8 +3339,7 @@ async function loadData() {
     }
 
 
-    loadingData =
-        true;
+    loadingData = true;
 
 
     const button =
@@ -3301,13 +3352,10 @@ async function loadData() {
             'headerRefreshButton'
         );
 
-
     const status =
         document.getElementById(
             'status'
         );
-
-
 
     const loadingOverlay =
         document.getElementById(
@@ -3315,13 +3363,35 @@ async function loadData() {
         );
 
 
-    button.disabled =
-        true;
+    if (button) {
+        button.disabled = true;
+    }
 
+    if (headerRefreshButton) {
+        headerRefreshButton.disabled = true;
+    }
 
     status.textContent =
         'Обновление...';
 
+
+    resetLoadingOperations();
+
+    // Этапы будут обновляться реальным
+    // состоянием /api/dashboard-progress.
+    updateLoadingOperations({
+        running: true,
+        current: 'orders',
+        steps: {
+            orders: false,
+            prices: false,
+            stocks: false,
+            moysklad: false,
+            advertising: false,
+            finance: false,
+            storage: false
+        }
+    });
 
 
     loadingOverlay.classList.add(
@@ -3333,11 +3403,6 @@ async function loadData() {
         'false'
     );
 
-    resetLoadingOperations();
-
-    setActiveOperation(
-        'orders'
-    );
 
     document
         .getElementById(
@@ -3359,6 +3424,10 @@ async function loadData() {
         `;
 
 
+    const progressPromise =
+        pollDashboardProgress();
+
+
     try {
 
         const response =
@@ -3366,13 +3435,8 @@ async function loadData() {
                 '/api/dashboard?ts=' +
                 Date.now(),
                 {
-
-                    method:
-                        'GET',
-
-                    cache:
-                        'no-store'
-
+                    method: 'GET',
+                    cache: 'no-store'
                 }
             );
 
@@ -3390,27 +3454,18 @@ async function loadData() {
                 data.error ||
                 `HTTP ${response.status}`
             );
-
         }
 
 
-        window.dashboardData =
-            data;
-
         window.dashboardData = data;
 
-        window.dashboardData =
-            data;
-
-        render(
-            data
-        );
-
+        render(data);
 
         markAllOperationsDone();
 
         if (headerRefreshButton) {
-            headerRefreshButton.style.display = 'inline-flex';
+            headerRefreshButton.style.display =
+                'inline-flex';
         }
 
 
@@ -3439,29 +3494,9 @@ async function loadData() {
             'Ошибка';
 
         if (headerRefreshButton) {
-            headerRefreshButton.style.display = 'none';
+            headerRefreshButton.style.display =
+                'none';
         }
-
-        document
-            .getElementById('tableBody')
-            .innerHTML = `
-                <tr>
-                    <td colspan="60" class="table-empty-state">
-                        <div style="margin-bottom:12px;color:#c0392b;font-size:13px">
-                            ${escapeHtml(error.message)}
-                        </div>
-                        <button id="refreshButton" class="big-load-button" type="button">
-                            Получить данные
-                        </button>
-                    </td>
-                </tr>
-            `;
-
-        document
-            .getElementById('refreshButton')
-            .addEventListener('click', loadData);
-
-        closeLoadingOverlay();
 
 
         document
@@ -3474,12 +3509,24 @@ async function loadData() {
 
                     <td
                         colspan="60"
-                        class="error"
+                        class="table-empty-state"
                     >
 
-                        ${escapeHtml(
-                            error.message
-                        )}
+                        <div
+                            style="margin-bottom:12px;color:#c0392b;font-size:13px"
+                        >
+                            ${escapeHtml(
+                                error.message
+                            )}
+                        </div>
+
+                        <button
+                            id="refreshButton"
+                            class="big-load-button"
+                            type="button"
+                        >
+                            Получить данные
+                        </button>
 
                     </td>
 
@@ -3488,11 +3535,25 @@ async function loadData() {
             `;
 
 
+        document
+            .getElementById(
+                'refreshButton'
+            )
+            .addEventListener(
+                'click',
+                loadData
+            );
+
+
     } finally {
 
-        loadingData =
-            false;
+        loadingData = false;
 
+        // Дожидаемся последнего чтения прогресса,
+        // чтобы не оставить активный этап.
+        await progressPromise;
+
+        markAllOperationsDone();
 
         if (button) {
             button.disabled = false;
@@ -3503,14 +3564,12 @@ async function loadData() {
         }
 
         closeLoadingOverlay();
-
     }
-
 }
 
 
 // ============================================================
-// КНОПКА
+// КНОПКИ
 // ============================================================
 
 document
