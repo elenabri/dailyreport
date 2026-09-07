@@ -5169,44 +5169,67 @@ async function buildDashboard() {
                             ),
 
 
-                        // ------------------------------------
-                        // РЕКЛАМА
-                        // ------------------------------------
-
                         advertising: {
 
-                            views:
-                                Number(
-                                    advertising.views ||
-                                    0
-                                ),
+    // ========================================
+    // ПРОДВИЖЕНИЕ
+    // ========================================
 
-                            clicks:
-                                Number(
-                                    advertising.clicks ||
-                                    0
-                                ),
+    views:
+        Number(
+            advertising.views ||
+            0
+        ),
 
-                            atbs:
-                                Number(
-                                    advertising.atbs ||
-                                    0
-                                ),
+    clicks:
+        Number(
+            advertising.clicks ||
+            0
+        ),
 
-                            cpm:
-                                Number(
-                                    advertising.cpm ||
-                                    0
-                                ),
+    atbs:
+        Number(
+            advertising.atbs ||
+            0
+        ),
 
-                            spend:
-                                Number(
-                                    advertising.spend ||
-                                    0
-                                )
+    cpm:
+        Number(
+            advertising.cpm ||
+            0
+        ),
 
-                        },
+    // ----------------------------------------
+    // ЗАТРАТЫ
+    // ----------------------------------------
 
+    spend:
+        Number(
+            advertising.spend ||
+            0
+        ),
+
+    // ----------------------------------------
+    // ЗАКАЗЫ ИЗ ПРОДВИЖЕНИЯ
+    // ----------------------------------------
+
+    orders:
+        Number(
+            advertising.orders ||
+            0
+        ),
+
+    // ----------------------------------------
+    // СУММА ЗАКАЗОВ ИЗ ПРОДВИЖЕНИЯ
+    // ----------------------------------------
+
+    ordersAmount:
+        Number(
+            advertising.ordersAmount ||
+            0
+        )
+
+},
 
                         // ------------------------------------
                         // ФИНАНСЫ
