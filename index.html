@@ -250,6 +250,28 @@ button {
     height: 14px;
 }
 
+
+
+/* =========================================================
+   ПОДСВЕТКА ИЗМЕНЕНИЙ
+   ========================================================= */
+
+.up {
+    background: #dff5e6 !important;
+    color: #14783b !important;
+    font-weight: 700;
+}
+
+.down {
+    background: #ffe1e1 !important;
+    color: #b42318 !important;
+    font-weight: 700;
+}
+
+.same {
+    color: #505762;
+}
+
 /* =========================================================
    ТАБЛИЦА
    ========================================================= */
@@ -270,51 +292,51 @@ table {
     table-layout: fixed;
     border-collapse: separate;
     border-spacing: 0;
-    font-size: 8px;
+    font-size: 9px;
 }
 
 th {
     padding: 3px 2px;
-    font-size: 7px;
-    line-height: 1.05;
+    font-size: 8px;
+    line-height: 1.1;
     white-space: normal;
     text-align: center;
 }
 
 td {
     padding: 3px 2px;
-    font-size: 8px;
-    line-height: 1.05;
+    font-size: 9px;
+    line-height: 1.1;
     white-space: nowrap;
     text-align: right;
 }
 
 th.product-header,
 .product-cell {
-    width: 155px;
-    min-width: 155px;
-    max-width: 155px;
+    width: 175px;
+    min-width: 175px;
+    max-width: 175px;
 }
 
 .product-name {
-    font-size: 8px;
-    line-height: 1.08;
+    font-size: 9px;
+    line-height: 1.12;
     -webkit-line-clamp: 2;
     line-clamp: 2;
 }
 
 .product-article {
-    font-size: 7px;
+    font-size: 8px;
     margin-top: 2px;
 }
 
 .day-title {
-    font-size: 9px;
+    font-size: 10px;
     padding: 3px 1px;
 }
 
 .day-date {
-    font-size: 7px;
+    font-size: 8px;
     margin-top: 1px;
 }
 
@@ -323,7 +345,7 @@ th.product-header,
 }
 
 .empty {
-    font-size: 8px;
+    font-size: 9px;
 }
 
 /* Узкие рабочие колонки */
@@ -359,29 +381,29 @@ thead tr:nth-child(2) th:nth-child(26) {
 
 @media (min-width: 1600px) {
     table {
-        zoom: 0.88;
-        width: 113.64%;
+        zoom: 0.92;
+        width: 108.7%;
     }
 }
 
 @media (min-width: 1900px) {
     table {
-        zoom: 0.96;
-        width: 104.17%;
+        zoom: 1;
+        width: 100%;
     }
 }
 
 @media (max-width: 1599px) {
     table {
-        zoom: 0.72;
-        width: 138.89%;
+        zoom: 0.82;
+        width: 121.95%;
     }
 }
 
 @media (max-width: 1100px) {
     table {
-        zoom: 0.58;
-        width: 172.41%;
+        zoom: 0.68;
+        width: 147.06%;
     }
 
     .filter-group {
@@ -969,6 +991,32 @@ function render(data) {
                 return true;
             }
         );
+
+
+    // ========================================================
+    // СОРТИРОВКА ПО ЗАКАЗАМ ЗА 3 ДНЯ
+    // ПО ВОЗРАСТАНИЮ
+    // ========================================================
+
+    products.sort((a, b) => {
+
+        const aSales =
+            Number(a.days?.[0]?.sales || 0) +
+            Number(a.days?.[1]?.sales || 0) +
+            Number(a.days?.[2]?.sales || 0);
+
+        const bSales =
+            Number(b.days?.[0]?.sales || 0) +
+            Number(b.days?.[1]?.sales || 0) +
+            Number(b.days?.[2]?.sales || 0);
+
+        if (aSales !== bSales) {
+            return aSales - bSales;
+        }
+
+        return Number(a.nmId || 0) - Number(b.nmId || 0);
+
+    });
 
 
     // ========================================================
@@ -1930,6 +1978,8 @@ async function loadData() {
 
         window.dashboardData =
             data;
+
+        window.dashboardData = data;
 
         render(
             data
