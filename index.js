@@ -623,30 +623,22 @@ async function getPromotionStats(
 ) {
 
     console.log('');
-
     console.log(
         '========================================'
     );
-
     console.log(
         'ПОЛУЧАЕМ РЕКЛАМУ WB'
     );
-
     console.log(
         `${dateFrom} -> ${dateTo}`
     );
-
-    console.log(
-        'ДИАПАЗОН РЕКЛАМЫ ИСПОЛЬЗУЕТСЯ ПОЛНОСТЬЮ'
-    );
-
     console.log(
         '========================================'
     );
 
 
     // --------------------------------------------------------
-    // 1. Получаем список рекламных кампаний
+    // Получаем кампании
     // --------------------------------------------------------
 
     const promotionUrl =
@@ -667,16 +659,18 @@ async function getPromotionStats(
             : [];
 
 
-    // --------------------------------------------------------
-    // 2. Собираем ID кампаний
-    //
-    // Больше НЕТ ограничения:
-    // "изменена за последние 3 дня".
-    //
-    // Для корректного отчёта за выбранный период
-    // нам нужны все кампании, которые доступны
-    // в списке promotion/count.
-    // --------------------------------------------------------
+    // ========================================================
+    // ПОСЛЕДНИЕ 7 ДНЕЙ
+    // ========================================================
+
+    const sevenDaysAgo =
+        Date.now() -
+        7 *
+        24 *
+        60 *
+        60 *
+        1000;
+
 
     const uniqueIds =
         new Set();
@@ -685,6 +679,12 @@ async function getPromotionStats(
     for (
         const group of groups
     ) {
+
+        const status =
+            Number(
+                group?.status
+            );
+
 
         const list =
             Array.isArray(
@@ -716,9 +716,54 @@ async function getPromotionStats(
             }
 
 
-            uniqueIds.add(
-                advertId
-            );
+            // ------------------------------------------------
+            // Остановленные кампании
+            //
+            // Твоя прежняя логика:
+            // status === 9 → добавляем всегда
+            // ------------------------------------------------
+
+            if (
+                status === 9
+            ) {
+
+                uniqueIds.add(
+                    advertId
+                );
+
+                continue;
+
+            }
+
+
+            // ------------------------------------------------
+            // Изменение кампании
+            //
+            // Было 3 дня.
+            // Теперь 7 дней.
+            // ------------------------------------------------
+
+            const changeTime =
+                advert?.changeTime
+                    ? new Date(
+                        advert.changeTime
+                    ).getTime()
+                    : NaN;
+
+
+            if (
+                Number.isFinite(
+                    changeTime
+                ) &&
+                changeTime >=
+                    sevenDaysAgo
+            ) {
+
+                uniqueIds.add(
+                    advertId
+                );
+
+            }
 
         }
 
@@ -726,9 +771,7 @@ async function getPromotionStats(
 
 
     const campaignIds =
-        [
-            ...uniqueIds
-        ];
+        [...uniqueIds];
 
 
     console.log(
@@ -741,19 +784,13 @@ async function getPromotionStats(
         !campaignIds.length
     ) {
 
-        console.log(
-            'Рекламных кампаний нет.'
-        );
-
         return {};
 
     }
 
 
     // --------------------------------------------------------
-    // 3. FULLSTATS
-    //
-    // Максимум 50 кампаний за один запрос.
+    // FULLSTATS максимум 50 кампаний
     // --------------------------------------------------------
 
     const result = {};
@@ -773,7 +810,6 @@ async function getPromotionStats(
 
 
         console.log('');
-
         console.log(
             `FULLSTATS ${
                 i + 1
@@ -788,23 +824,11 @@ async function getPromotionStats(
         );
 
 
-        // ----------------------------------------------------
-        // ВАЖНО:
-        // здесь передаём именно выбранный диапазон.
-        // ----------------------------------------------------
-
         const url =
             'https://advert-api.wildberries.ru/adv/v3/fullstats' +
-
             `?ids=${batch.join(',')}` +
-
-            `&beginDate=${encodeURIComponent(
-                dateFrom
-            )}` +
-
-            `&endDate=${encodeURIComponent(
-                dateTo
-            )}`;
+            `&beginDate=${dateFrom}` +
+            `&endDate=${dateTo}`;
 
 
         const stats =
@@ -828,10 +852,6 @@ async function getPromotionStats(
 
         }
 
-
-        // ----------------------------------------------------
-        // 4. Разбираем дни
-        // ----------------------------------------------------
 
         for (
             const campaign of stats
@@ -868,8 +888,8 @@ async function getPromotionStats(
 
 
                 // ------------------------------------------------
-                // На всякий случай не принимаем дни
-                // вне выбранного диапазона.
+                // Дополнительная защита:
+                // не берём дни вне выбранного диапазона.
                 // ------------------------------------------------
 
                 if (
@@ -913,10 +933,7 @@ async function getPromotionStats(
 
 
                         if (
-                            !Number.isFinite(
-                                nmId
-                            ) ||
-                            nmId <= 0
+                            !nmId
                         ) {
 
                             continue;
@@ -928,8 +945,7 @@ async function getPromotionStats(
                             !result[nmId]
                         ) {
 
-                            result[nmId] =
-                                {};
+                            result[nmId] = {};
 
                         }
 
@@ -997,9 +1013,9 @@ async function getPromotionStats(
         }
 
 
-        // ----------------------------------------------------
-        // Пауза между FULLSTATS
-        // ----------------------------------------------------
+        // --------------------------------------------------------
+        // Пауза между пачками
+        // --------------------------------------------------------
 
         if (
             i + 50 <
@@ -1021,7 +1037,7 @@ async function getPromotionStats(
 
 
     // --------------------------------------------------------
-    // 5. CPM
+    // CPM
     // --------------------------------------------------------
 
     for (
@@ -1070,38 +1086,9 @@ async function getPromotionStats(
     }
 
 
-    console.log('');
-
-    console.log(
-        '========================================'
-    );
-
-    console.log(
-        'РЕКЛАМА: ЛОКАЛЬНАЯ ОБРАБОТКА ЗАВЕРШЕНА'
-    );
-
-    console.log(
-        'Диапазон:',
-        dateFrom,
-        '->',
-        dateTo
-    );
-
-    console.log(
-        'Товаров с рекламой:',
-        Object.keys(
-            result
-        ).length
-    );
-
-    console.log(
-        '========================================'
-    );
-
-
     return result;
-}
 
+}
 
 // ============================================================
 // ТЕКУЩИЕ ЦЕНЫ ПРОДАВЦА
