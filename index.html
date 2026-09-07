@@ -878,6 +878,7 @@ tbody tr:hover td.product-cell {
             <label><input type="checkbox" data-column="atbs" checked><span>Корзины</span></label>
             <label><input type="checkbox" data-column="cpm" checked><span>CPM</span></label>
             <label><input type="checkbox" data-column="spend"><span>Затраты</span></label>
+            <label><input type="checkbox" data-column="orders" checked><span>Заказы</span></label>
             <label><input type="checkbox" data-column="sales" checked><span>Продажи</span></label>
             <label><input type="checkbox" data-column="forPay"><span>К перечислению</span></label>
             <label><input type="checkbox" data-column="logistics"><span>Логистика</span></label>
@@ -1659,6 +1660,12 @@ function render(data) {
         },
 
         {
+            key: 'orders',
+            title: 'Заказы',
+            className: 'day-col'
+        },
+
+        {
             key: 'sales',
             title: 'Продажи',
             className: 'day-col'
@@ -2101,6 +2108,17 @@ function render(data) {
                 value =
                     formatAdMoney(
                         day.advertising?.spend ||
+                        0
+                    );
+
+                break;
+
+
+            case 'orders':
+
+                value =
+                    formatNumber(
+                        day.orders ||
                         0
                     );
 
