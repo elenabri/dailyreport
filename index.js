@@ -3736,22 +3736,22 @@ async function getDailyFinancials(
         // ЛОГИСТИКА
         // ====================================================
 
-        const deliveryAmount =
+        const deliveryService =
     Number(
-        row?.deliveryAmount ||
+        row?.deliveryService ||
         0
     );
 
 
 if (
     Number.isFinite(
-        deliveryAmount
+        deliveryService
     ) &&
-    deliveryAmount !== 0
+    deliveryService !== 0
 ) {
 
     item.logistics +=
-        deliveryAmount;
+        deliveryService;
 
 }
 
