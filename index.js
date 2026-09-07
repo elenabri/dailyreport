@@ -3131,7 +3131,225 @@ async function getMoySkladCosts(
     return result;
 
 }
+// ============================================================
+// ОСТАТКИ МойСклад — ОСНОВНОЙ СКЛАД
+// ============================================================
 
+async function getMoySkladMainStockByArticle() {
+
+    const MAIN_STORE_ID =
+        '91a5a6df-103e-11ea-0a80-062800074c7a';
+
+
+    console.log('');
+    console.log(
+        '=========================================='
+    );
+    console.log(
+        'МОЙСКЛАД — ОСНОВНОЙ СКЛАД'
+    );
+    console.log(
+        '=========================================='
+    );
+
+
+    // ========================================================
+    // 1. Получаем товары МойСклад
+    // ========================================================
+
+    const products = [];
+
+    let offset = 0;
+
+
+    while (true) {
+
+        const {
+            data
+        } = await api.get(
+            `/entity/product?limit=1000&offset=${offset}`
+        );
+
+
+        const rows =
+            Array.isArray(
+                data?.rows
+            )
+                ? data.rows
+                : [];
+
+
+        products.push(
+            ...rows
+        );
+
+
+        if (
+            rows.length < 1000
+        ) {
+
+            break;
+
+        }
+
+
+        offset += 1000;
+
+    }
+
+
+    // ========================================================
+    // 2. Артикул МойСклад → товар
+    // ========================================================
+
+    const productsByArticle =
+        {};
+
+
+    for (
+        const product of products
+    ) {
+
+        const article =
+            String(
+                product?.article ||
+                ''
+            ).trim();
+
+
+        if (
+            article
+        ) {
+
+            productsByArticle[
+                article
+            ] =
+                product;
+
+        }
+
+    }
+
+
+    // ========================================================
+    // 3. Получаем остатки по складам
+    // ========================================================
+
+    const {
+        data
+    } = await api.get(
+        '/report/stock/bystore'
+    );
+
+
+    const rows =
+        Array.isArray(
+            data?.rows
+        )
+            ? data.rows
+            : [];
+
+
+    const result =
+        {};
+
+
+    // ========================================================
+    // 4. Разбираем остатки
+    // ========================================================
+
+    for (
+        const row of rows
+    ) {
+
+        const article =
+            String(
+                row?.article ||
+                ''
+            ).trim();
+
+
+        if (
+            !article
+        ) {
+
+            continue;
+
+        }
+
+
+        if (
+            !productsByArticle[
+                article
+            ]
+        ) {
+
+            continue;
+
+        }
+
+
+        const stores =
+            Array.isArray(
+                row?.stockByStore
+            )
+                ? row.stockByStore
+                : [];
+
+
+        const mainStore =
+            stores.find(
+                store => {
+
+                    const href =
+                        String(
+                            store?.store?.meta?.href ||
+                            store?.meta?.href ||
+                            ''
+                        );
+
+
+                    return href.includes(
+                        MAIN_STORE_ID
+                    );
+
+                }
+            );
+
+
+        if (
+            !mainStore
+        ) {
+
+            result[article] =
+                0;
+
+            continue;
+
+        }
+
+
+        result[article] =
+            Number(
+                mainStore.stock ??
+                mainStore.quantity ??
+                0
+            );
+
+    }
+
+
+    console.log(
+        'МойСклад: товаров с остатком:',
+        Object.keys(
+            result
+        ).length
+    );
+
+
+    return result;
+
+}
 // ============================================================
 // ФИНАНСОВЫЕ ДАННЫЕ ПО ДНЯМ
 //
@@ -4604,21 +4822,23 @@ async function buildDashboard() {
         await getMoySkladCosts(
             products
         );
+    const moySkladMainStock =
+    await getMoySkladMainStockByArticle();
 
 
     console.log(
-        `✅ 6/9 МОЙСКЛАД — завершено за ${
-            (
-                (Date.now() - startedAt) /
-                1000
-            ).toFixed(1)
-        } сек. Себестоимость найдена для ${
-            Object.keys(
-                moySkladCosts
-            ).length
-        } товаров`
-    );
-
+    `✅ 6/9 МОЙСКЛАД — завершено. ` +
+    `Себестоимость: ${
+        Object.keys(
+            moySkladCosts
+        ).length
+    } товаров. ` +
+    `Основной склад: ${
+        Object.keys(
+            moySkladMainStock
+        ).length
+    } товаров.`
+);
 
     // ========================================================
     // 7. РЕКЛАМА
@@ -5308,6 +5528,17 @@ async function buildDashboard() {
             // -----------------------------------------------
 
             cost,
+// -----------------------------------------------
+// ОСНОВНОЙ СКЛАД МойСклад
+// -----------------------------------------------
+
+mainStock:
+    Number(
+        moySkladMainStock[
+            article
+        ] ??
+        0
+    ),
 
 
             // -----------------------------------------------
