@@ -5346,52 +5346,67 @@ dashboardProgress.steps.storage =
                         // ПРИБЫЛЬ
                         // ------------------------------------
 
-                        const profit =
-                            Number(
-                                (
-                                    Number(
-                                        finance.forPay ||
-                                        0
-                                    )
-
-                                    -
-
-                                    Number(
-                                        finance.logistics ||
-                                        0
-                                    )
-
-                                    -
-
-                                    storage
-
-                                    -
-
-                                    wbPromotion
-
-                                    -
-
-                                    tax
-
-                                ).toFixed(2)
-                            );
-
-
                         // ------------------------------------
-                        // СЕБЕСТОИМОСТЬ ПРОДАННОГО
-                        // ------------------------------------
+// СЕБЕСТОИМОСТЬ ПРОДАННОГО
+// ------------------------------------
 
-                        const costTotal =
-                            cost != null
+const costTotal =
+    cost != null
+        ? Number(
+            (
+                cost *
+                sales
+            ).toFixed(2)
+        )
+        : null;
 
-                                ? Number(
-                                    (
-                                        cost *
-                                        sales
-                                    ).toFixed(2)
-                                )
 
-                                : null;
+// ------------------------------------
+// ПРИБЫЛЬ
+//
+// К перечислению
+// - Логистика
+// - Хранение
+// - Продвижение
+// - Налог
+// - Себестоимость × количество продаж
+// ------------------------------------
+
+const profit =
+    costTotal != null
+        ? Number(
+            (
+                Number(
+                    finance.forPay ||
+                    0
+                )
+
+                -
+
+                Number(
+                    finance.logistics ||
+                    0
+                )
+
+                -
+
+                storage
+
+                -
+
+                wbPromotion
+
+                -
+
+                tax
+
+                -
+
+                costTotal
+
+            ).toFixed(2)
+        )
+        : null;
 
 
                         // ------------------------------------
