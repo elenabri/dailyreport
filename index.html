@@ -2347,14 +2347,24 @@ function render(data) {
             title: 'Хранение',
             className: 'day-col-wide',
             group: 'finance'
-        },
+        },
+
+        {
+            key: 'tax',
+            title: 'Налог',
+            className: 'day-col-wide',
+            group: 'finance'
+        },
 
         {
             key: 'costTotal',
             title: 'Суммарная<br>себестоимость',
             className: 'day-col-wide',
             group: 'finance'
-        },
+        },
+
+        {
+            key: 'profit',
             title: 'Прибыль',
             className: 'day-col-wide',
             group: 'finance'
@@ -3026,7 +3036,7 @@ function render(data) {
                         financial?.storage
                     );
 
-                break;
+                break;
 
 
             case 'costTotal':
@@ -3036,7 +3046,7 @@ function render(data) {
                         financial?.costTotal
                     );
 
-                break;
+                break;
 
                 value =
                     formatMoney(
@@ -3454,85 +3464,27 @@ function getModalColumns() {
 function getColumnDefinition(key) {
 
     const definitions = {
-        buyerPrice: {
-            title: 'Цена покупателя',
-            group: 'base'
-        },
-        spp: {
-            title: 'СПП',
-            group: 'base'
-        },
-        sellerPrice: {
-            title: 'Цена продавца',
-            group: 'base'
-        },
-        allOrders: {
-            title: 'Все заказы',
-            group: 'base'
-        },
-        sales: {
-            title: 'Продажи',
-            group: 'base'
-        },
-        adViews: {
-            title: 'Показы',
-            group: 'promotion'
-        },
-        adClicks: {
-            title: 'Клики',
-            group: 'promotion'
-        },
-        adCarts: {
-            title: 'Корзины',
-            group: 'promotion'
-        },
-        adCpm: {
-            title: 'CPM',
-            group: 'promotion'
-        },
-        adSpend: {
-            title: 'Затраты',
-            group: 'promotion'
-        },
-        adOrders: {
-            title: 'Заказы',
-            group: 'promotion'
-        },
-        adOrdersAmount: {
-            title: 'Сумма заказов',
-            group: 'promotion'
-        },
-        retailSales: {
-            title: 'Оборот',
-            group: 'finance'
-        },
-        forPay: {
-            title: 'К перечислению',
-            group: 'finance'
-        },
-        logistics: {
-            title: 'Логистика',
-            group: 'finance'
-        },
-        storage: {
-            title: 'Хранение',
-            group: 'finance'
-        },
-        costTotal: {
-            title: 'Суммарная себестоимость',
-            group: 'finance'
-        },
-            title: 'Прибыль',
-            group: 'finance'
-        },
-        profitability: {
-            title: 'Рентабельность',
-            group: 'finance'
-        },
-        margin: {
-            title: 'Маржа',
-            group: 'finance'
-        }
+        buyerPrice: { title: 'Цена покупателя', group: 'base' },
+        spp: { title: 'СПП', group: 'base' },
+        sellerPrice: { title: 'Цена продавца', group: 'base' },
+        allOrders: { title: 'Все заказы', group: 'base' },
+        sales: { title: 'Продажи', group: 'base' },
+        adViews: { title: 'Показы', group: 'promotion' },
+        adClicks: { title: 'Клики', group: 'promotion' },
+        adCarts: { title: 'Корзины', group: 'promotion' },
+        adCpm: { title: 'CPM', group: 'promotion' },
+        adSpend: { title: 'Затраты', group: 'promotion' },
+        adOrders: { title: 'Заказы', group: 'promotion' },
+        adOrdersAmount: { title: 'Сумма заказов', group: 'promotion' },
+        retailSales: { title: 'Оборот', group: 'finance' },
+        forPay: { title: 'К перечислению', group: 'finance' },
+        logistics: { title: 'Логистика', group: 'finance' },
+        storage: { title: 'Хранение', group: 'finance' },
+        tax: { title: 'Налог', group: 'finance' },
+        costTotal: { title: 'Суммарная себестоимость', group: 'finance' },
+        profit: { title: 'Прибыль', group: 'finance' },
+        profitability: { title: 'Рентабельность', group: 'finance' },
+        margin: { title: 'Маржа', group: 'finance' }
     };
 
     return definitions[key] || {
@@ -3540,7 +3492,6 @@ function getColumnDefinition(key) {
         group: 'base'
     };
 }
-
 
 function getModalValue(
     key,
@@ -3561,9 +3512,7 @@ function getModalValue(
 
         case 'allOrders':
             return formatNumber(
-                day.allOrders ??
-                day.orders ??
-                0
+                day.allOrders ?? day.orders ?? 0
             );
 
         case 'sales':
@@ -3572,19 +3521,13 @@ function getModalValue(
             );
 
         case 'adViews':
-            return formatNumber(
-                day.advertising?.views || 0
-            );
+            return formatNumber(day.advertising?.views || 0);
 
         case 'adClicks':
-            return formatNumber(
-                day.advertising?.clicks || 0
-            );
+            return formatNumber(day.advertising?.clicks || 0);
 
         case 'adCarts':
-            return formatNumber(
-                day.advertising?.atbs || 0
-            );
+            return formatNumber(day.advertising?.atbs || 0);
 
         case 'adCpm':
             return formatNumber(
@@ -3625,12 +3568,19 @@ function getModalValue(
         case 'storage':
             return formatMoney(
                 day.financial?.storage
-            );
+            );
+
+        case 'tax':
+            return formatMoney(
+                day.financial?.tax
+            );
 
         case 'costTotal':
             return formatMoney(
                 day.financial?.costTotal
-            );
+            );
+
+        case 'profit':
             return formatMoney(
                 day.financial?.profit
             );
@@ -3649,7 +3599,6 @@ function getModalValue(
             return '<span class="empty">—</span>';
     }
 }
-
 
 function getModalChangeClass(
     key,
