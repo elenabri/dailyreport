@@ -863,6 +863,10 @@ tbody tr:hover td.product-cell {
 
 
 .header-refresh-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
     min-width: 118px;
     height: 38px;
     padding: 0 18px;
@@ -1034,6 +1038,212 @@ tbody tr:hover td.product-cell {
     }
 }
 
+
+/* =========================================================
+   ОКНО 7-ДНЕВНЫХ ДАННЫХ ТОВАРА
+   ========================================================= */
+
+.product-cell {
+    cursor: pointer;
+}
+
+.product-cell:hover {
+    background: #f5f8fc !important;
+}
+
+.product-details-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, .38);
+    backdrop-filter: blur(6px);
+}
+
+.product-details-overlay.visible {
+    display: flex;
+}
+
+.product-details-modal {
+    width: min(1180px, calc(100vw - 32px));
+    max-height: min(82vh, 860px);
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    box-shadow: 0 28px 90px rgba(15, 23, 42, .24);
+    overflow: hidden;
+}
+
+.product-details-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 20px 22px 16px;
+    border-bottom: 1px solid #e9edf2;
+}
+
+.product-details-title-wrap {
+    min-width: 0;
+}
+
+.product-details-title {
+    font-size: 21px;
+    font-weight: 800;
+    line-height: 1.25;
+    color: #1f2937;
+    overflow-wrap: anywhere;
+}
+
+.product-details-meta {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.product-details-close {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    background: #f3f4f6;
+    color: #4b5563;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.product-details-close:hover {
+    background: #e5e7eb;
+    color: #111827;
+}
+
+.product-details-body {
+    overflow: auto;
+    padding: 18px 20px 22px;
+}
+
+.product-details-table-wrap {
+    width: 100%;
+    overflow: auto;
+    border: 1px solid #e4e8ee;
+    border-radius: 14px;
+}
+
+.product-details-table {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+}
+
+.product-details-table th,
+.product-details-table td {
+    border-right: 1px solid #e5e9ef;
+    border-bottom: 1px solid #e5e9ef;
+    padding: 10px 11px;
+    font-size: 12px;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+
+.product-details-table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f8fafc;
+    color: #374151;
+    font-weight: 800;
+    text-align: center;
+}
+
+.product-details-table th:first-child,
+.product-details-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    min-width: 115px;
+    text-align: left;
+    background: #fff;
+}
+
+.product-details-table th:first-child {
+    z-index: 4;
+    background: #f8fafc;
+}
+
+.product-details-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.product-details-table th:last-child,
+.product-details-table td:last-child {
+    border-right: 0;
+}
+
+.product-details-table td {
+    text-align: right;
+    color: #20242b;
+    background: #fff;
+}
+
+.product-details-table .day-label {
+    font-weight: 700;
+    color: #374151;
+}
+
+.product-details-table .day-separator-modal {
+    border-left: 2px solid #cfd5dc;
+}
+
+.product-details-table .promotion-modal {
+    background: #faf7ff;
+}
+
+.product-details-table .up {
+    background: #dff5e6 !important;
+    color: #14783b !important;
+}
+
+.product-details-table .down {
+    background: #ffe1e1 !important;
+    color: #b42318 !important;
+}
+
+@media (max-width: 760px) {
+    .product-details-overlay {
+        padding: 10px;
+    }
+
+    .product-details-modal {
+        width: calc(100vw - 20px);
+        max-height: 90vh;
+        border-radius: 16px;
+    }
+
+    .product-details-header {
+        padding: 16px;
+    }
+
+    .product-details-title {
+        font-size: 18px;
+    }
+}
+
 </style>
 
 </head>
@@ -1081,6 +1291,53 @@ tbody tr:hover td.product-cell {
 
     </div>
 
+
+
+    <!-- =====================================================
+         ОКНО 7-ДНЕВНЫХ ДАННЫХ ТОВАРА
+         ===================================================== -->
+
+    <div
+        id="productDetailsOverlay"
+        class="product-details-overlay"
+        aria-hidden="true"
+    >
+        <div
+            class="product-details-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="productDetailsTitle"
+        >
+            <div class="product-details-header">
+                <div class="product-details-title-wrap">
+                    <div
+                        id="productDetailsTitle"
+                        class="product-details-title"
+                    ></div>
+                    <div
+                        id="productDetailsMeta"
+                        class="product-details-meta"
+                    ></div>
+                </div>
+
+                <button
+                    id="productDetailsClose"
+                    class="product-details-close"
+                    type="button"
+                    aria-label="Закрыть"
+                >
+                    ×
+                </button>
+            </div>
+
+            <div class="product-details-body">
+                <div
+                    id="productDetailsTable"
+                    class="product-details-table-wrap"
+                ></div>
+            </div>
+        </div>
+    </div>
 
     <!-- =====================================================
          ОКНО ЗАГРУЗКИ
@@ -2884,9 +3141,8 @@ function render(data) {
 
                 <td
                     class="product-cell"
-                    title="${escapeHtml(
-                        product.name || ''
-                    )}"
+                    data-product-nm-id="${escapeHtml(product.nmId || '')}"
+                    title="Нажмите, чтобы открыть данные за 7 дней"
                 >
 
                     <div class="product-name">
@@ -3168,6 +3424,586 @@ function render(data) {
         .innerHTML =
             html;
 }
+
+
+
+// ============================================================
+// ОКНО ДАННЫХ ТОВАРА ЗА 7 ДНЕЙ
+// ============================================================
+
+function getModalColumns() {
+
+    const columns = [];
+
+    document
+        .querySelectorAll(
+            '.column-chooser input[data-column]'
+        )
+        .forEach(
+            checkbox => {
+
+                if (!checkbox.checked) {
+                    return;
+                }
+
+                columns.push(
+                    checkbox.dataset.column
+                );
+            }
+        );
+
+    return columns;
+}
+
+
+function getColumnDefinition(key) {
+
+    const definitions = {
+        buyerPrice: {
+            title: 'Цена покупателя',
+            group: 'base'
+        },
+        spp: {
+            title: 'СПП',
+            group: 'base'
+        },
+        sellerPrice: {
+            title: 'Цена продавца',
+            group: 'base'
+        },
+        allOrders: {
+            title: 'Все заказы',
+            group: 'base'
+        },
+        sales: {
+            title: 'Продажи',
+            group: 'base'
+        },
+        adViews: {
+            title: 'Показы',
+            group: 'promotion'
+        },
+        adClicks: {
+            title: 'Клики',
+            group: 'promotion'
+        },
+        adCarts: {
+            title: 'Корзины',
+            group: 'promotion'
+        },
+        adCpm: {
+            title: 'CPM',
+            group: 'promotion'
+        },
+        adSpend: {
+            title: 'Затраты',
+            group: 'promotion'
+        },
+        adOrders: {
+            title: 'Заказы',
+            group: 'promotion'
+        },
+        adOrdersAmount: {
+            title: 'Сумма заказов',
+            group: 'promotion'
+        },
+        retailSales: {
+            title: 'Оборот',
+            group: 'finance'
+        },
+        forPay: {
+            title: 'К перечислению',
+            group: 'finance'
+        },
+        logistics: {
+            title: 'Логистика',
+            group: 'finance'
+        },
+        storage: {
+            title: 'Хранение',
+            group: 'finance'
+        },
+        tax: {
+            title: 'Налог',
+            group: 'finance'
+        },
+        profit: {
+            title: 'Прибыль',
+            group: 'finance'
+        },
+        profitability: {
+            title: 'Рентабельность',
+            group: 'finance'
+        },
+        margin: {
+            title: 'Маржа',
+            group: 'finance'
+        }
+    };
+
+    return definitions[key] || {
+        title: key,
+        group: 'base'
+    };
+}
+
+
+function getModalValue(
+    key,
+    day,
+    isToday
+) {
+
+    switch (key) {
+
+        case 'buyerPrice':
+            return formatMoney(day.buyerPrice);
+
+        case 'spp':
+            return formatPercent(day.spp);
+
+        case 'sellerPrice':
+            return formatMoney(day.sellerPrice);
+
+        case 'allOrders':
+            return formatNumber(
+                day.allOrders ??
+                day.orders ??
+                0
+            );
+
+        case 'sales':
+            return formatNumber(
+                day.sales ?? 0
+            );
+
+        case 'adViews':
+            return formatNumber(
+                day.advertising?.views || 0
+            );
+
+        case 'adClicks':
+            return formatNumber(
+                day.advertising?.clicks || 0
+            );
+
+        case 'adCarts':
+            return formatNumber(
+                day.advertising?.atbs || 0
+            );
+
+        case 'adCpm':
+            return formatNumber(
+                day.advertising?.cpm || 0,
+                2
+            );
+
+        case 'adSpend':
+            return formatAdMoney(
+                day.advertising?.spend || 0
+            );
+
+        case 'adOrders':
+            return formatNumber(
+                day.advertising?.orders || 0
+            );
+
+        case 'adOrdersAmount':
+            return formatAdMoney(
+                day.advertising?.ordersAmount || 0
+            );
+
+        case 'retailSales':
+            return formatMoney(
+                day.financial?.retailSales
+            );
+
+        case 'forPay':
+            return formatMoney(
+                day.financial?.forPay
+            );
+
+        case 'logistics':
+            return formatMoney(
+                day.financial?.logistics
+            );
+
+        case 'storage':
+            return formatMoney(
+                day.financial?.storage
+            );
+
+        case 'tax':
+            return formatMoney(
+                day.financial?.tax
+            );
+
+        case 'profit':
+            return formatMoney(
+                day.financial?.profit
+            );
+
+        case 'profitability':
+            return formatPercent(
+                day.financial?.profitability
+            );
+
+        case 'margin':
+            return formatPercent(
+                day.financial?.margin
+            );
+
+        default:
+            return '<span class="empty">—</span>';
+    }
+}
+
+
+function getModalChangeClass(
+    key,
+    currentDay,
+    previousDay
+) {
+
+    if (!previousDay) {
+        return '';
+    }
+
+    let current;
+    let previous;
+    let type = 'sales';
+
+    switch (key) {
+
+        case 'buyerPrice':
+            current = currentDay.buyerPrice;
+            previous = previousDay.buyerPrice;
+            type = 'price';
+            break;
+
+        case 'spp':
+            current = currentDay.spp;
+            previous = previousDay.spp;
+            type = 'spp';
+            break;
+
+        case 'sellerPrice':
+            current = currentDay.sellerPrice;
+            previous = previousDay.sellerPrice;
+            type = 'price';
+            break;
+
+        case 'allOrders':
+            current = currentDay.allOrders ?? currentDay.orders;
+            previous = previousDay.allOrders ?? previousDay.orders;
+            break;
+
+        case 'sales':
+            current = currentDay.sales;
+            previous = previousDay.sales;
+            break;
+
+        case 'adOrders':
+            current = currentDay.advertising?.orders;
+            previous = previousDay.advertising?.orders;
+            break;
+
+        case 'adOrdersAmount':
+            current = currentDay.advertising?.ordersAmount;
+            previous = previousDay.advertising?.ordersAmount;
+            break;
+
+        case 'profitability':
+            current = currentDay.financial?.profitability;
+            previous = previousDay.financial?.profitability;
+            type = 'profitability';
+            break;
+
+        case 'margin':
+            current = currentDay.financial?.margin;
+            previous = previousDay.financial?.margin;
+            type = 'margin';
+            break;
+
+        default:
+            return '';
+    }
+
+    return getChangeClass(
+        current,
+        previous,
+        type
+    );
+}
+
+
+function formatModalDayTitle(date, index) {
+
+    const titles = [
+        'Сегодня',
+        'Вчера',
+        'Позавчера'
+    ];
+
+    return `${titles[index] || 'День'} ${formatDate(date)}`;
+}
+
+
+function openProductDetails(product) {
+
+    const overlay =
+        document.getElementById(
+            'productDetailsOverlay'
+        );
+
+    const title =
+        document.getElementById(
+            'productDetailsTitle'
+        );
+
+    const meta =
+        document.getElementById(
+            'productDetailsMeta'
+        );
+
+    const tableContainer =
+        document.getElementById(
+            'productDetailsTable'
+        );
+
+    if (
+        !overlay ||
+        !title ||
+        !meta ||
+        !tableContainer ||
+        !product
+    ) {
+        return;
+    }
+
+    const allDays =
+        Array.isArray(product.days)
+            ? product.days
+            : [];
+
+    const days =
+        allDays
+            .slice(-7)
+            .reverse();
+
+    const keys =
+        getModalColumns();
+
+    title.textContent =
+        product.name ||
+        'Без названия';
+
+    meta.innerHTML = `
+        <span>Артикул: <b>${escapeHtml(product.article || '—')}</b></span>
+        <span>Код: <b>${escapeHtml(product.nmId || '—')}</b></span>
+    `;
+
+    let html = `
+        <table class="product-details-table">
+            <thead>
+                <tr>
+                    <th>День</th>
+    `;
+
+    for (const key of keys) {
+
+        const definition =
+            getColumnDefinition(key);
+
+        html += `
+            <th
+                class="${
+                    definition.group === 'promotion'
+                        ? 'promotion-modal'
+                        : ''
+                }"
+            >
+                ${definition.title}
+            </th>
+        `;
+    }
+
+    html += `
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    days.forEach(
+        (day, index) => {
+
+            const currentDay =
+                day || {};
+
+            const currentDate =
+                String(
+                    currentDay.date || ''
+                ).slice(0, 10);
+
+            const currentDayIndex =
+                allDays.findIndex(
+                    item =>
+                        String(
+                            item?.date || ''
+                        ).slice(0, 10) ===
+                        currentDate
+                );
+
+            const previousDay =
+                currentDayIndex > 0
+                    ? allDays[currentDayIndex - 1]
+                    : null;
+
+            html += `
+                <tr>
+                    <td class="day-label day-separator-modal">
+                        ${formatModalDayTitle(
+                            currentDate,
+                            index
+                        )}
+                    </td>
+            `;
+
+            for (const key of keys) {
+
+                const definition =
+                    getColumnDefinition(key);
+
+                const changeClass =
+                    getModalChangeClass(
+                        key,
+                        currentDay,
+                        previousDay
+                    );
+
+                html += `
+                    <td
+                        class="${
+                            definition.group === 'promotion'
+                                ? 'promotion-modal '
+                                : ''
+                        }${changeClass}"
+                    >
+                        ${getModalValue(
+                            key,
+                            currentDay,
+                            index === 0
+                        )}
+                    </td>
+                `;
+            }
+
+            html += `
+                </tr>
+            `;
+        }
+    );
+
+    html += `
+            </tbody>
+        </table>
+    `;
+
+    tableContainer.innerHTML = html;
+
+    overlay.classList.add('visible');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+}
+
+
+function closeProductDetails() {
+
+    const overlay =
+        document.getElementById(
+            'productDetailsOverlay'
+        );
+
+    if (!overlay) {
+        return;
+    }
+
+    overlay.classList.remove('visible');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+}
+
+
+// ============================================================
+// ОКНО ТОВАРА — КЛИК ПО НАЗВАНИЮ
+// ============================================================
+
+document
+    .getElementById('tableBody')
+    .addEventListener(
+        'click',
+        event => {
+
+            const cell =
+                event.target.closest(
+                    '.product-cell'
+                );
+
+            if (!cell) {
+                return;
+            }
+
+            const nmId =
+                Number(
+                    cell.dataset.productNmId
+                );
+
+            const product =
+                window.dashboardData?.products?.find(
+                    item =>
+                        Number(item?.nmId) === nmId
+                );
+
+            if (product) {
+                openProductDetails(product);
+            }
+        }
+    );
+
+
+document
+    .getElementById('productDetailsClose')
+    .addEventListener(
+        'click',
+        closeProductDetails
+    );
+
+
+document
+    .getElementById('productDetailsOverlay')
+    .addEventListener(
+        'click',
+        event => {
+
+            if (
+                event.target ===
+                event.currentTarget
+            ) {
+                closeProductDetails();
+            }
+        }
+    );
+
+
+document.addEventListener(
+    'keydown',
+    event => {
+
+        if (event.key === 'Escape') {
+            closeProductDetails();
+        }
+    }
+);
 
 
 // ============================================================
