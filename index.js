@@ -1331,6 +1331,10 @@ async function getCurrentSellerPrices(
 // ТЕКУЩАЯ ЦЕНА ПОКУПАТЕЛЯ
 // ============================================================
 
+// ============================================================
+// ТЕКУЩАЯ ЦЕНА ПОКУПАТЕЛЯ + РЕЙТИНГ + ОТЗЫВЫ
+// ============================================================
+
 async function getCurrentBuyerPrice(
     nmId
 ) {
@@ -1393,7 +1397,9 @@ async function getCurrentBuyerPrice(
         );
 
 
-        if (!stdout) {
+        if (
+            !stdout
+        ) {
 
             throw new Error(
                 stderr ||
@@ -1425,12 +1431,18 @@ async function getCurrentBuyerPrice(
         const product =
             data?.products?.find(
                 p =>
-                    Number(p.id) ===
-                    Number(nmId)
+                    Number(
+                        p.id
+                    ) ===
+                    Number(
+                        nmId
+                    )
             );
 
 
-        if (!product) {
+        if (
+            !product
+        ) {
 
             throw new Error(
                 `Товар ${nmId} не найден в card.wb.ru`
@@ -1439,26 +1451,86 @@ async function getCurrentBuyerPrice(
         }
 
 
+        // ====================================================
+        // РЕЙТИНГ ТОВАРА
+        // ====================================================
+
+        const rating =
+            product?.reviewRating != null
+                ? Number(
+                    product.reviewRating
+                )
+                : null;
+
+
+        // ====================================================
+        // КОЛИЧЕСТВО ОТЗЫВОВ
+        // ====================================================
+
+        const reviews =
+            product?.feedbacks != null
+                ? Number(
+                    product.feedbacks
+                )
+                : null;
+
+
+        // ====================================================
+        // ЦЕНА ПОКУПАТЕЛЯ
+        // ====================================================
+
         const priceKopecks =
-    product?.sizes?.[0]?.price?.product;
+            product?.sizes?.[0]
+                ?.price
+                ?.product;
 
 
-if (
-    priceKopecks == null
-) {
+        // ====================================================
+        // ЦЕНЫ НЕТ
+        // Это НЕ ошибка.
+        //
+        // Рейтинг и отзывы всё равно возвращаем.
+        // ====================================================
 
-    console.log(
-        `buyerPrice ${nmId}: цена отсутствует — пропускаем`
-    );
+        if (
+            priceKopecks == null
+        ) {
 
-    return null;
+            console.log(
+                `buyerPrice ${nmId}: цена отсутствует — пропускаем`
+            );
 
-}
+
+            return {
+
+                price:
+                    null,
+
+                rating,
+
+                reviews
+
+            };
+
+        }
 
 
-return Number(
-    priceKopecks
-) / 100;
+        // ====================================================
+        // ГОТОВЫЙ РЕЗУЛЬТАТ
+        // ====================================================
+
+        return {
+
+            price:
+                Number(
+                    priceKopecks
+                ) / 100,
+
+            rating,
+
+            reviews
+
+        };
 
     } catch (error) {
 
@@ -1472,7 +1544,6 @@ return Number(
     }
 
 }
-
 
 // ============================================================
 // ЦЕНЫ И СПП СЕГОДНЯ
@@ -1533,10 +1604,22 @@ async function fillTodayPrices(
 
         try {
 
-            todayData.buyerPrice =
-                await getCurrentBuyerPrice(
-                    nmId
-                );
+            const buyerData =
+    await getCurrentBuyerPrice(
+        nmId
+    );
+
+todayData.buyerPrice =
+    buyerData?.price ??
+    null;
+
+product.rating =
+    buyerData?.rating ??
+    null;
+
+product.reviews =
+    buyerData?.reviews ??
+    null;
 
         } catch {
 
