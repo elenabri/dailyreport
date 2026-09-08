@@ -3193,26 +3193,21 @@ function render(data) {
                         )}
 
                     </div>
-
-                    <div class="product-rating">
-
-                        ${
-                            product.rating != null &&
-                            Number.isFinite(Number(product.rating))
-                                ? `Рейтинг: ${Number(product.rating).toFixed(1)}`
-                                : 'Рейтинг: —'
-                        }
-
-                        ·
-
-                        ${
-                            product.reviews != null &&
-                            Number.isFinite(Number(product.reviews))
-                                ? `${formatNumber(product.reviews)} отзывов`
-                                : '— отзывов'
-                        }
-
-                    </div>
+·
+                    ${
+        product.rating != null &&
+        Number.isFinite(Number(product.rating))
+            ? `
+                · ${Number(product.rating).toFixed(1)}
+                ${
+                    product.reviews != null &&
+                    Number.isFinite(Number(product.reviews))
+                        ? ` (${formatNumber(product.reviews)})`
+                        : ''
+                }
+              `
+            : ''
+    }
 
                 </td>
 
