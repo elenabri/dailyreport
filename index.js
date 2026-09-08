@@ -3101,7 +3101,6 @@ async function getMoySkladCosts(
 }
 // ============================================================
 // ОСТАТКИ МойСклад — ОСНОВНОЙ СКЛАД
-// ТОЧНО ПО ТОЙ ЖЕ ЛОГИКЕ, ЧТО РАБОЧИЙ /api/stock
 // ============================================================
 
 async function getMoySkladMainStockByArticle() {
@@ -3123,31 +3122,90 @@ async function getMoySkladMainStockByArticle() {
 
 
     // ========================================================
-    // 1. Получаем ВСЕ assortment с остатками
+    // 1. ПАРАМЕТРЫ ОСТАТКОВ
     // ========================================================
 
     const params =
-    'stockMode=all' +
-    `&stockStore=${encodeURIComponent(
-        `${api.defaults.baseURL}/entity/store/${MAIN_STORE_ID}`
-    )}`;
-
-
-    const assortment =
-        await getAll(
-            'assortment',
-            params
-        );
+        'stockMode=all' +
+        `&stockStore=${encodeURIComponent(
+            `${api.defaults.baseURL}/entity/store/${MAIN_STORE_ID}`
+        )}`;
 
 
     console.log(
-        'МойСклад assortment:',
-        assortment.length
+        'Склад МойСклад:',
+        MAIN_STORE_ID
     );
 
 
     // ========================================================
-    // 2. Артикул → остаток
+    // 2. ПОЛУЧАЕМ ASSORTMENT
+    // ========================================================
+
+    const assortment = [];
+
+    let offset = 0;
+
+    const limit = 1000;
+
+
+    while (true) {
+
+        console.log(
+            `МойСклад: получаем assortment ` +
+            `offset=${offset}`
+        );
+
+
+        const response =
+            await api.get(
+                `/entity/assortment` +
+                `?limit=${limit}` +
+                `&offset=${offset}` +
+                `&${params}`
+            );
+
+
+        const rows =
+            Array.isArray(
+                response.data?.rows
+            )
+                ? response.data.rows
+                : [];
+
+
+        assortment.push(
+            ...rows
+        );
+
+
+        console.log(
+            `МойСклад: получено ${rows.length}, ` +
+            `всего ${assortment.length}`
+        );
+
+
+        if (
+            rows.length < limit
+        ) {
+
+            break;
+
+        }
+
+
+        offset += limit;
+
+    }
+
+
+    // ========================================================
+    // 3. СОБИРАЕМ:
+    //
+    // МойСклад code → stock
+    //
+    // В Dashboard:
+    // WB supplierArticle = МойСклад code
     // ========================================================
 
     const result = {};
@@ -3158,13 +3216,14 @@ async function getMoySkladMainStockByArticle() {
     ) {
 
         // ----------------------------------------------------
-        // В assortment могут быть не только товары.
-        // Нам нужен именно товар.
+        // Нас интересуют товары
         // ----------------------------------------------------
 
         const type =
-            item?.meta?.type ||
-            '';
+            String(
+                item?.meta?.type ||
+                ''
+            );
 
 
         if (
@@ -3178,11 +3237,7 @@ async function getMoySkladMainStockByArticle() {
 
 
         // ----------------------------------------------------
-        // Артикул
-        //
-        // В нашем dashboard:
-        // WB supplierArticle = МойСклад code
-        //
+        // CODE
         // ----------------------------------------------------
 
         const article =
@@ -3205,21 +3260,67 @@ async function getMoySkladMainStockByArticle() {
         // ОСТАТОК
         // ----------------------------------------------------
 
-        result[article] =
+        const stock =
             Number(
                 item?.stock ||
                 0
             );
 
+
+        result[article] =
+            Number.isFinite(
+                stock
+            )
+                ? stock
+                : 0;
+
     }
 
 
+    // ========================================================
+    // 4. ЛОГ
+    // ========================================================
+
     console.log(
-        'МойСклад: найдено остатков:',
+        'МойСклад: assortment:',
+        assortment.length
+    );
+
+    console.log(
+        'МойСклад: товаров с остатками:',
         Object.keys(
             result
         ).length
     );
+
+
+    // ========================================================
+    // 5. ПРИМЕР ДАННЫХ
+    // ========================================================
+
+    const sample =
+        Object.entries(
+            result
+        ).slice(
+            0,
+            10
+        );
+
+
+    if (
+        sample.length
+    ) {
+
+        console.log(
+            'МойСклад: пример остатков:',
+            JSON.stringify(
+                sample,
+                null,
+                2
+            )
+        );
+
+    }
 
 
     return result;
