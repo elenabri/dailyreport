@@ -3127,10 +3127,10 @@ async function getMoySkladMainStockByArticle() {
     // ========================================================
 
     const params =
-        'stockMode=all' +
-        `&stockStore=${encodeURIComponent(
-            `${BASE}/entity/store/${MAIN_STORE_ID}`
-        )}`;
+    'stockMode=all' +
+    `&stockStore=${encodeURIComponent(
+        `${api.defaults.baseURL}/entity/store/${MAIN_STORE_ID}`
+    )}`;
 
 
     const assortment =
