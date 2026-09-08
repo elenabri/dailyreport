@@ -4703,8 +4703,7 @@ async function buildDashboard() {
         await getCurrentSellerPrices(
             nmIds
         );
-dashboardProgress.steps.sellerPrices =
-    true;
+//dashboardProgress.steps.sellerPrices =true;
 
     console.log(
         `✅ 3/9 ЦЕНЫ ПРОДАВЦА — завершено за ${
@@ -4718,7 +4717,8 @@ dashboardProgress.steps.sellerPrices =
             ).length
         }`
     );
-
+dashboardProgress.steps.sellerPrices =
+    true;
 
     // ========================================================
     // 4. ЦЕНЫ СЕГОДНЯ
