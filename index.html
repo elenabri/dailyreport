@@ -633,6 +633,25 @@ th.product-header,
     margin-top: 3px;
 }
 
+.product-rating {
+    margin-top: 4px;
+    font-size: 10px;
+    color: #68707c;
+    line-height: 1.2;
+    font-weight: 600;
+}
+
+td.product-cell.product-rating-low {
+    background: #ffe1e1 !important;
+    color: #b42318 !important;
+    border-radius: 7px;
+}
+
+td.product-cell.product-rating-low .product-article,
+td.product-cell.product-rating-low .product-rating {
+    color: #b42318 !important;
+}
+
 .day-title {
     font-size: 12px;
     padding: 5px 3px;
@@ -3140,7 +3159,12 @@ function render(data) {
             <tr>
 
                 <td
-                    class="product-cell"
+                    class="product-cell ${
+                        Number.isFinite(Number(product.rating)) &&
+                        Number(product.rating) <= 4.6
+                            ? 'product-rating-low'
+                            : ''
+                    }"
                     data-product-nm-id="${escapeHtml(product.nmId || '')}"
                     title="Нажмите, чтобы открыть данные за 7 дней"
                 >
@@ -3167,6 +3191,26 @@ function render(data) {
                             product.nmId ||
                             ''
                         )}
+
+                    </div>
+
+                    <div class="product-rating">
+
+                        ${
+                            product.rating != null &&
+                            Number.isFinite(Number(product.rating))
+                                ? `Рейтинг: ${Number(product.rating).toFixed(1)}`
+                                : 'Рейтинг: —'
+                        }
+
+                        ·
+
+                        ${
+                            product.reviews != null &&
+                            Number.isFinite(Number(product.reviews))
+                                ? `${formatNumber(product.reviews)} отзывов`
+                                : '— отзывов'
+                        }
 
                     </div>
 
