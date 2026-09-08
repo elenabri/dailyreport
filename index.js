@@ -1440,23 +1440,25 @@ async function getCurrentBuyerPrice(
 
 
         const priceKopecks =
-            product?.sizes?.[0]?.price?.product;
+    product?.sizes?.[0]?.price?.product;
 
 
-        if (
-            priceKopecks == null
-        ) {
+if (
+    priceKopecks == null
+) {
 
-            throw new Error(
-                `price.product отсутствует у ${nmId}`
-            );
+    console.log(
+        `buyerPrice ${nmId}: цена отсутствует — пропускаем`
+    );
 
-        }
+    return null;
+
+}
 
 
-        return Number(
-            priceKopecks
-        ) / 100;
+return Number(
+    priceKopecks
+) / 100;
 
     } catch (error) {
 
@@ -4703,7 +4705,7 @@ async function buildDashboard() {
         await getCurrentSellerPrices(
             nmIds
         );
-//dashboardProgress.steps.sellerPrices =true;
+dashboardProgress.steps.sellerPrices =true;
 
     console.log(
         `✅ 3/9 ЦЕНЫ ПРОДАВЦА — завершено за ${
@@ -4717,8 +4719,6 @@ async function buildDashboard() {
             ).length
         }`
     );
-dashboardProgress.steps.sellerPrices =
-    true;
 
     // ========================================================
     // 4. ЦЕНЫ СЕГОДНЯ
