@@ -3101,6 +3101,7 @@ async function getMoySkladCosts(
 }
 // ============================================================
 // ОСТАТКИ МойСклад — ОСНОВНОЙ СКЛАД
+// ТОЧНО ПО ТОЙ ЖЕ ЛОГИКЕ, ЧТО РАБОЧИЙ /api/stock
 // ============================================================
 
 async function getMoySkladMainStockByArticle() {
@@ -3114,7 +3115,7 @@ async function getMoySkladMainStockByArticle() {
         '=========================================='
     );
     console.log(
-        'МОЙСКЛАД — ОСНОВНОЙ СКЛАД'
+        'МОЙСКЛАД — ОСТАТКИ ОСНОВНОГО СКЛАДА'
     );
     console.log(
         '=========================================='
@@ -3122,117 +3123,71 @@ async function getMoySkladMainStockByArticle() {
 
 
     // ========================================================
-    // 1. Получаем товары МойСклад
+    // 1. Получаем ВСЕ assortment с остатками
     // ========================================================
 
-    const products = [];
+    const params =
+        'stockMode=all' +
+        `&stockStore=${encodeURIComponent(
+            `${BASE}/entity/store/${MAIN_STORE_ID}`
+        )}`;
 
-    let offset = 0;
 
-
-    while (true) {
-
-        const {
-            data
-        } = await api.get(
-            `/entity/product?limit=1000&offset=${offset}`
+    const assortment =
+        await getAll(
+            'assortment',
+            params
         );
 
 
-        const rows =
-            Array.isArray(
-                data?.rows
-            )
-                ? data.rows
-                : [];
-
-
-        products.push(
-            ...rows
-        );
-
-
-        if (
-            rows.length < 1000
-        ) {
-
-            break;
-
-        }
-
-
-        offset += 1000;
-
-    }
-
-
-    // ========================================================
-    // 2. Артикул МойСклад → товар
-    // ========================================================
-
-    const productsByArticle =
-        {};
-
-
-    for (
-        const product of products
-    ) {
-
-        const article =
-            String(
-                product?.article ||
-                ''
-            ).trim();
-
-
-        if (
-            article
-        ) {
-
-            productsByArticle[
-                article
-            ] =
-                product;
-
-        }
-
-    }
-
-
-    // ========================================================
-    // 3. Получаем остатки по складам
-    // ========================================================
-
-    const {
-        data
-    } = await api.get(
-        '/report/stock/bystore'
+    console.log(
+        'МойСклад assortment:',
+        assortment.length
     );
 
 
-    const rows =
-        Array.isArray(
-            data?.rows
-        )
-            ? data.rows
-            : [];
-
-
-    const result =
-        {};
-
-
     // ========================================================
-    // 4. Разбираем остатки
+    // 2. Артикул → остаток
     // ========================================================
+
+    const result = {};
+
 
     for (
-        const row of rows
+        const item of assortment
     ) {
+
+        // ----------------------------------------------------
+        // В assortment могут быть не только товары.
+        // Нам нужен именно товар.
+        // ----------------------------------------------------
+
+        const type =
+            item?.meta?.type ||
+            '';
+
+
+        if (
+            type &&
+            type !== 'product'
+        ) {
+
+            continue;
+
+        }
+
+
+        // ----------------------------------------------------
+        // Артикул
+        //
+        // В нашем dashboard:
+        // WB supplierArticle = МойСклад code
+        //
+        // ----------------------------------------------------
 
         const article =
             String(
-                row?.article ||
+                item?.code ||
                 ''
             ).trim();
 
@@ -3246,61 +3201,13 @@ async function getMoySkladMainStockByArticle() {
         }
 
 
-        if (
-            !productsByArticle[
-                article
-            ]
-        ) {
-
-            continue;
-
-        }
-
-
-        const stores =
-            Array.isArray(
-                row?.stockByStore
-            )
-                ? row.stockByStore
-                : [];
-
-
-        const mainStore =
-            stores.find(
-                store => {
-
-                    const href =
-                        String(
-                            store?.store?.meta?.href ||
-                            store?.meta?.href ||
-                            ''
-                        );
-
-
-                    return href.includes(
-                        MAIN_STORE_ID
-                    );
-
-                }
-            );
-
-
-        if (
-            !mainStore
-        ) {
-
-            result[article] =
-                0;
-
-            continue;
-
-        }
-
+        // ----------------------------------------------------
+        // ОСТАТОК
+        // ----------------------------------------------------
 
         result[article] =
             Number(
-                mainStore.stock ??
-                mainStore.quantity ??
+                item?.stock ||
                 0
             );
 
@@ -3308,7 +3215,7 @@ async function getMoySkladMainStockByArticle() {
 
 
     console.log(
-        'МойСклад: товаров с остатком:',
+        'МойСклад: найдено остатков:',
         Object.keys(
             result
         ).length
