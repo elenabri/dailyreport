@@ -3178,35 +3178,33 @@ function render(data) {
 
                     </div>
 
-                    <div class="product-article">
+                   <div class="product-article">
 
-                        ${escapeHtml(
-                            product.article ||
-                            ''
-                        )}
+    ${escapeHtml(
+        product.article ||
+        ''
+    )}
 
-                        · nmId
+    · nmId ${escapeHtml(
+        product.nmId ||
+        ''
+    )}
 
-                        ${escapeHtml(
-                            product.nmId ||
-                            ''
-                        )}
-
-                    </div>
-                    ${
+    ${
         product.rating != null &&
         Number.isFinite(Number(product.rating))
-            ? `
-                · ${Number(product.rating).toFixed(1)}
-                ${
-                    product.reviews != null &&
-                    Number.isFinite(Number(product.reviews))
-                        ? ` (${formatNumber(product.reviews)})`
-                        : ''
-                }
-              `
+            ? ` · ${Number(product.rating).toFixed(1)}`
             : ''
     }
+
+    ${
+        product.reviews != null &&
+        Number.isFinite(Number(product.reviews))
+            ? ` (${formatNumber(product.reviews)})`
+            : ''
+    }
+
+</div>
 
                 </td>
 
