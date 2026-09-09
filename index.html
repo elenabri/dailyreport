@@ -2347,14 +2347,14 @@ function render(data) {
             title: 'Хранение',
             className: 'day-col-wide',
             group: 'finance'
-        },
+        },
 
         {
             key: 'costTotal',
             title: 'Суммарная<br>себестоимость',
             className: 'day-col-wide',
             group: 'finance'
-        },
+        },
             title: 'Прибыль',
             className: 'day-col-wide',
             group: 'finance'
@@ -3026,7 +3026,7 @@ function render(data) {
                         financial?.storage
                     );
 
-                break;
+                break;
 
 
             case 'costTotal':
@@ -3520,11 +3520,11 @@ function getColumnDefinition(key) {
         storage: {
             title: 'Хранение',
             group: 'finance'
-        },
+        },
         costTotal: {
             title: 'Суммарная себестоимость',
             group: 'finance'
-        },
+        },
             title: 'Прибыль',
             group: 'finance'
         },
@@ -3628,12 +3628,12 @@ function getModalValue(
         case 'storage':
             return formatMoney(
                 day.financial?.storage
-            );
+            );
 
         case 'costTotal':
             return formatMoney(
                 day.financial?.costTotal
-            );
+            );
             return formatMoney(
                 day.financial?.profit
             );
