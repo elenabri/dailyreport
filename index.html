@@ -633,6 +633,25 @@ th.product-header,
     margin-top: 3px;
 }
 
+.product-rating {
+    margin-top: 4px;
+    font-size: 10px;
+    color: #68707c;
+    line-height: 1.2;
+    font-weight: 600;
+}
+
+td.product-cell.product-rating-low {
+    background: #ffe1e1 !important;
+    color: #b42318 !important;
+    border-radius: 7px;
+}
+
+td.product-cell.product-rating-low .product-article,
+td.product-cell.product-rating-low .product-rating {
+    color: #b42318 !important;
+}
+
 .day-title {
     font-size: 12px;
     padding: 5px 3px;
@@ -1497,7 +1516,6 @@ tbody tr:hover td.product-cell {
             <label><input type="checkbox" data-column="logistics"><span>Логистика</span></label>
             <label><input type="checkbox" data-column="storage"><span>Хранение</span></label>
             <label><input type="checkbox" data-column="tax"><span>Налог</span></label>
-            <label><input type="checkbox" data-column="costTotal"><span>Суммарная себестоимость</span></label>
             <label><input type="checkbox" data-column="profit"><span>Прибыль</span></label>
             <label><input type="checkbox" data-column="profitability" checked><span>Рентабельность</span></label>
             <label><input type="checkbox" data-column="margin" checked><span>Маржа</span></label>
@@ -2347,14 +2365,17 @@ function render(data) {
             title: 'Хранение',
             className: 'day-col-wide',
             group: 'finance'
-        },
+        },
 
         {
-            key: 'costTotal',
-            title: 'Суммарная<br>себестоимость',
+            key: 'tax',
+            title: 'Налог',
             className: 'day-col-wide',
             group: 'finance'
-        },
+        },
+
+        {
+            key: 'profit',
             title: 'Прибыль',
             className: 'day-col-wide',
             group: 'finance'
@@ -3026,17 +3047,20 @@ function render(data) {
                         financial?.storage
                     );
 
-                break;
+                break;
 
 
-            case 'costTotal':
+            case 'tax':
 
                 value =
                     formatMoney(
-                        financial?.costTotal
+                        financial?.tax
                     );
 
-                break;
+                break;
+
+
+            case 'profit':
 
                 value =
                     formatMoney(
@@ -3135,7 +3159,12 @@ function render(data) {
             <tr>
 
                 <td
-                    class="product-cell"
+                    class="product-cell ${
+                        Number.isFinite(Number(product.rating)) &&
+                        Number(product.rating) <= 4.6
+                            ? 'product-rating-low'
+                            : ''
+                    }"
                     data-product-nm-id="${escapeHtml(product.nmId || '')}"
                     title="Нажмите, чтобы открыть данные за 7 дней"
                 >
@@ -3149,21 +3178,33 @@ function render(data) {
 
                     </div>
 
-                    <div class="product-article">
+                   <div class="product-article">
 
-                        ${escapeHtml(
-                            product.article ||
-                            ''
-                        )}
+    ${escapeHtml(
+        product.article ||
+        ''
+    )}
 
-                        · nmId
+    · nmId ${escapeHtml(
+        product.nmId ||
+        ''
+    )}
 
-                        ${escapeHtml(
-                            product.nmId ||
-                            ''
-                        )}
+    ${
+        product.rating != null &&
+        Number.isFinite(Number(product.rating))
+            ? ` · ${Number(product.rating).toFixed(1)}`
+            : ''
+    }
 
-                    </div>
+    ${
+        product.reviews != null &&
+        Number.isFinite(Number(product.reviews))
+            ? ` (${formatNumber(product.reviews)})`
+            : ''
+    }
+
+</div>
 
                 </td>
 
@@ -3517,11 +3558,12 @@ function getColumnDefinition(key) {
         storage: {
             title: 'Хранение',
             group: 'finance'
-        },
-        costTotal: {
-            title: 'Суммарная себестоимость',
+        },
+        tax: {
+            title: 'Налог',
             group: 'finance'
-        },
+        },
+        profit: {
             title: 'Прибыль',
             group: 'finance'
         },
@@ -3625,12 +3667,14 @@ function getModalValue(
         case 'storage':
             return formatMoney(
                 day.financial?.storage
-            );
+            );
 
-        case 'costTotal':
+        case 'tax':
             return formatMoney(
-                day.financial?.costTotal
-            );
+                day.financial?.tax
+            );
+
+        case 'profit':
             return formatMoney(
                 day.financial?.profit
             );
