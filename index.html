@@ -1516,6 +1516,7 @@ tbody tr:hover td.product-cell {
             <label><input type="checkbox" data-column="logistics"><span>Логистика</span></label>
             <label><input type="checkbox" data-column="storage"><span>Хранение</span></label>
             <label><input type="checkbox" data-column="tax"><span>Налог</span></label>
+            <label><input type="checkbox" data-column="costTotal"><span>Суммарная себестоимость</span></label>
             <label><input type="checkbox" data-column="profit"><span>Прибыль</span></label>
             <label><input type="checkbox" data-column="profitability" checked><span>Рентабельность</span></label>
             <label><input type="checkbox" data-column="margin" checked><span>Маржа</span></label>
@@ -2370,6 +2371,13 @@ function render(data) {
         {
             key: 'tax',
             title: 'Налог',
+            className: 'day-col-wide',
+            group: 'finance'
+        },
+
+        {
+            key: 'costTotal',
+            title: 'Суммарная<br>себестоимость',
             className: 'day-col-wide',
             group: 'finance'
         },
@@ -3563,6 +3571,10 @@ function getColumnDefinition(key) {
             title: 'Налог',
             group: 'finance'
         },
+        costTotal: {
+            title: 'Суммарная себестоимость',
+            group: 'finance'
+        },
         profit: {
             title: 'Прибыль',
             group: 'finance'
@@ -3672,6 +3684,11 @@ function getModalValue(
         case 'tax':
             return formatMoney(
                 day.financial?.tax
+            );
+
+        case 'costTotal':
+            return formatMoney(
+                day.financial?.costTotal
             );
 
         case 'profit':
